@@ -11,18 +11,7 @@ The target users for this project include robotics developers, test engineers, a
 ### Architecture
 
 
-flowchart LR
-  subgraph K8s[DigitalOcean Kubernetes (DOKS)]
-    FE[React Dashboard]
-    BE[FastAPI Backend]
-    DB[(PostgreSQL\nPVC Persistent Volume)]
-    FE <-- "WebSocket (live)" --> BE
-    FE <-- "REST (history/sessions)" --> BE
-    BE -->|SQL| DB
-    DB -->|SQL| BE
-  end
 
-  R[Robot/Sim Client\n(Python or ROS2)] <-- "WebSocket (telemetry + commands)" --> BE
 
 
 ### Objective
