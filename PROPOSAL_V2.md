@@ -96,8 +96,10 @@ Before using any AI tools, we decided on DigitalOcean + Docker Swarm, WebSockets
 
 ## 5. AI Assistance Disclosure
 
-AI was used only for wording polish. All the architecture and feature decisions were made by the team, the process of which is explained as follows:
+AI was used for wording polish and architectural validation. All the architecture and feature decisions were made by the team, the process of which is explained as follows:
 
 * Unassisted Work: The core project concept (the Metal-to-Cloud pipeline), the target user definition, the selection of the primary tech stack (FastAPI, React, PostgreSQL), and the choice of advanced features (WebSockets and CI/CD) were all developed completely independently by the team.
 
 * AI-Assisted Tasks: AI was used to refine the proposal's wording and to sanity check that the file's Markdown formatting and sections aligned correctly with the grading rubric.
+
+* AI Input and Team Decision: When discussing orchestration options, AI suggested that Kubernetes would provide better scalability and higher availability compared to Docker Swarm. However, our team decided to proceed with Docker Swarm because it offers simpler configuration and seamless integration with Docker Compose, allowing us to focus more on the application logic and WebSocket infrastructure rather than managing the complexity of Kubernetes. Additionally, Docker Swarm's learning curve is more appropriate for our timeline and team expertise level. We acknowledged Kubernetes's advantages but chose Docker Swarm as the better tradeoff for our project's scope and constraints.
