@@ -15,14 +15,14 @@ flowchart LR
   subgraph Swarm[DigitalOcean Docker Swarm]
     FE[React Dashboard]
     BE[FastAPI Backend]
-    DB[(PostgreSQL\nNamed Volume)]
-    FE <-- "WebSocket (live)" --> BE
-    FE <-- "REST (history/sessions)" --> BE
+    DB[(PostgreSQL<br/>Named Volume)]
+    FE <-- WebSocket live --> BE
+    FE <-- REST history/sessions --> BE
     BE -->|SQL| DB
     DB -->|SQL| BE
   end
 
-  R[Robot/Sim Client\n(Python or ROS2)] <-- "WebSocket (telemetry + commands)" --> BE
+  R[Robot/Sim Client<br/>Python or ROS2] <-- WebSocket telemetry + commands --> BE
 ```
 
 ### Objective
