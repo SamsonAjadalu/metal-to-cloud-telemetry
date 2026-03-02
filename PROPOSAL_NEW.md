@@ -8,6 +8,23 @@ The target users for this project include robotics developers, test engineers, a
 
 ## 2. Objective and Key Features
 
+### Architecture
+
+``` mermaid
+flowchart LR
+  subgraph K8s[DigitalOcean Kubernetes (DOKS)]
+    FE[React Dashboard]
+    BE[FastAPI Backend]
+    DB[(PostgreSQL\nPVC Persistent Volume)]
+    FE <-- "WebSocket (live)" --> BE
+    FE <-- "REST (history/sessions)" --> BE
+    BE -->|SQL| DB
+    DB -->|SQL| BE
+  end
+
+  R[Robot/Sim Client\n(Python or ROS2)] <-- "WebSocket (telemetry + commands)" --> BE
+```
+
 ### Objective
 Build and deploy a stateful cloud-native application that provides:
 
