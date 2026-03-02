@@ -10,7 +10,7 @@ The target users for this project include robotics developers, test engineers, a
 
 ### Architecture
 
-``` mermaid
+
 flowchart LR
   subgraph K8s[DigitalOcean Kubernetes (DOKS)]
     FE[React Dashboard]
@@ -23,7 +23,7 @@ flowchart LR
   end
 
   R[Robot/Sim Client\n(Python or ROS2)] <-- "WebSocket (telemetry + commands)" --> BE
-```
+
 
 ### Objective
 Build and deploy a stateful cloud-native application that provides:
