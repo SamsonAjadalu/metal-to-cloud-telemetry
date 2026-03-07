@@ -1,0 +1,185 @@
+# Person D — Robot Bridge / Simulation Notes
+
+This file explains how to run the TurtleBot3 + Gazebo simulation and the ROS 2 bridge code.
+
+## What I own
+I am **Person D**.
+
+My part is:
+- run **TurtleBot3 in Gazebo Classic** on ROS 2 Humble
+- read robot telemetry from ROS topics such as `/odom`
+- send telemetry to the backend over WebSocket
+- receive velocity commands from the backend over WebSocket
+- publish commands to `/cmd_vel`
+- support multiple robots by running one bridge instance per robot with a different `ROBOT_ID`
+
+## Team contract
+
+### Person A — Frontend (React)
+Frontend should connect to:
+- `ws://localhost:8000/ws/frontend`
+
+Frontend sends command messages like (example for one robot):
+```json
+{
+  "type": "command",
+  "robot_id": "tb3_01",
+  "linear_x_cmd": 0.2,
+  "angular_z_cmd": 0.0
+}
+```
+
+`robot_id` is not fixed. Frontend should send the selected robot ID, for example `tb3_01`, `tb3_02`, etc.
+
+Frontend should expect live telemetry messages like:
+```json
+{
+  "type": "telemetry",
+  "robot_id": "tb3_01",
+  "session_id": "session_tb3_01_20260307_112500",
+  "timestamp": "2026-03-07T16:20:00+00:00",
+  "x": 1.24,
+  "y": 2.81,
+  "yaw": 0.52,
+  "linear_x": 0.12,
+  "angular_z": 0.03
+}
+```
+
+### Person B — Backend (FastAPI + WebSocket + REST)
+Backend should expose these WebSocket endpoints:
+- robot bridge: `ws://localhost:8000/ws/robot/{robot_id}`
+- frontend: `ws://localhost:8000/ws/frontend`
+
+Backend is expected to:
+- accept telemetry from the robot bridge on `/ws/robot/{robot_id}`
+- forward telemetry to frontend clients
+- accept command messages from frontend clients
+- forward command messages to the correct robot bridge
+- optionally store telemetry by `robot_id` and `session_id`
+
+
+
+## Simulation setup used
+This project is currently using:
+- **ROS 2 Humble**
+- **Gazebo Classic**
+- **TurtleBot3 Burger**
+
+This was installed with the ROS 2 binary packages.
+
+## Install simulation dependencies
+If ROS 2 Humble is already installed, install TurtleBot3 + Gazebo packages with:
+
+```bash
+sudo apt install ros-humble-turtlebot3*
+```
+
+Set the TurtleBot3 model:
+
+```bash
+export TURTLEBOT3_MODEL=burger
+```
+
+Optional: make it persistent
+
+```bash
+echo "export TURTLEBOT3_MODEL=burger" >> ~/.bashrc
+source ~/.bashrc
+```
+
+## Run TurtleBot3 in Gazebo
+Open terminal 1:
+
+```bash
+source /opt/ros/humble/setup.bash
+export TURTLEBOT3_MODEL=burger
+ros2 launch turtlebot3_gazebo empty_world.launch.py
+```
+
+That should start Gazebo Classic and spawn the TurtleBot3 robot.
+
+## Optional manual robot control
+Open terminal 2:
+
+```bash
+source /opt/ros/humble/setup.bash
+export TURTLEBOT3_MODEL=burger
+ros2 run turtlebot3_teleop teleop_keyboard
+```
+
+Useful topic check:
+
+```bash
+ros2 topic list
+ros2 topic echo /odom
+```
+
+## ROS topics currently used by the bridge
+Current MVP topics:
+- subscribe: `/odom` (`nav_msgs/msg/Odometry`)
+- publish: `/cmd_vel` (`geometry_msgs/msg/Twist`)
+
+## Bridge code expectations
+The bridge code expects backend WebSocket access at:
+- `ws://localhost:8000/ws/robot/{robot_id}`
+
+Examples:
+- `ws://localhost:8000/ws/robot/tb3_01`
+- `ws://localhost:8000/ws/robot/tb3_02`
+
+The backend should send command JSON like this (example for `tb3_01`):
+```json
+{
+  "type": "command",
+  "robot_id": "tb3_01",
+  "linear_x_cmd": 0.2,
+  "angular_z_cmd": 0.0
+}
+```
+
+The bridge will send telemetry JSON like this (example for `tb3_01`):
+```json
+{
+  "type": "telemetry",
+  "robot_id": "tb3_01",
+  "session_id": "session_tb3_01_20260307_112500",
+  "timestamp": "2026-03-07T16:20:00+00:00",
+  "x": 1.24,
+  "y": 2.81,
+  "yaw": 0.52,
+  "linear_x": 0.12,
+  "angular_z": 0.03
+}
+```
+
+## Run the bridge code
+
+Open terminal 3:
+
+```bash
+source /opt/ros/humble/setup.bash
+cd /media/robotswithai/data1/ece1779/project/telemetry_ws
+colcon build --symlink-install
+source install/setup.bash
+ROBOT_ID=tb3_01 ros2 run robot_bridge telemetry_bridge
+```
+
+Use a different `ROBOT_ID` for each robot bridge instance.
+
+Examples:
+- `ROBOT_ID=tb3_01 ros2 run robot_bridge telemetry_bridge`
+- `ROBOT_ID=tb3_02 ros2 run robot_bridge telemetry_bridge`
+
+The same `telemetry_bridge.py` file is reused for all robots. Multi-robot support comes from running multiple instances with different `ROBOT_ID` values.
+
+## Python requirements
+The bridge uses ROS 2 Python packages from the ROS installation, plus one pip package:
+- `websockets`
+
+Install it with:
+
+```bash
+pip install -r requirements.txt
+```
+
