@@ -1,11 +1,7 @@
-# Person D — Robot Bridge / Simulation Notes
+Robot Bridge / Simulation Notes
 
 This file explains how to run the TurtleBot3 + Gazebo simulation and the ROS 2 bridge code.
 
-## What I own
-I am **Person D**.
-
-My part is:
 - run **TurtleBot3 in Gazebo Classic** on ROS 2 Humble
 - read robot telemetry from ROS topics such as `/odom`
 - send telemetry to the backend over WebSocket
@@ -13,9 +9,7 @@ My part is:
 - publish commands to `/cmd_vel`
 - support multiple robots by running one bridge instance per robot with a different `ROBOT_ID`
 
-## Team contract
-
-### Person A — Frontend (React)
+### Person A — Frontend 
 Frontend should connect to:
 - `ws://localhost:8000/ws/frontend`
 
