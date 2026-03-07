@@ -153,7 +153,7 @@ Open terminal 3:
 
 ```bash
 source /opt/ros/humble/setup.bash
-cd /media/robotswithai/data1/ece1779/project/telemetry_ws
+cd ~/telemetry_ws
 colcon build --symlink-install
 source install/setup.bash
 ROBOT_ID=tb3_01 ros2 run robot_bridge telemetry_bridge
