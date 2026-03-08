@@ -31,10 +31,21 @@ class ApiService {
                 const data = [];
                 let battery = 100;
                 let ms = Date.now() - 3600000; // 1 hour ago
+
+                let x = 0;
+                let y = 0;
+                let yaw = 0;
+
                 for (let i = 0; i < 60; i++) {
                     ms += 60000;
                     battery -= Math.random();
-                    data.push({ timestamp: ms, battery: battery });
+
+                    // Simulate some basic circular/wavy movement
+                    x += Math.cos(yaw) * 0.5;
+                    y += Math.sin(yaw) * 0.5;
+                    yaw += 0.1;
+
+                    data.push({ timestamp: ms, battery: battery, x: parseFloat(x.toFixed(2)), y: parseFloat(y.toFixed(2)), yaw: parseFloat(yaw.toFixed(2)) });
                 }
                 resolve(data);
             }, 500);
