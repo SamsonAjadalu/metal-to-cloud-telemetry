@@ -1,5 +1,4 @@
-How to Interact with the Backend TODAY (Current State)
-The foundational backend is live. Here is exactly how the team can use and test it right now, before we even connect the real robot or frontend UI.
+
 
 Step 1: Spin up the Backend (For Everyone)
 Pull my code and run this in your terminal:
