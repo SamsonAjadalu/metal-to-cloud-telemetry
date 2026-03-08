@@ -34,7 +34,7 @@ const Dashboard: React.FC = () => {
     const handleStop = () => {
         telemetryService.sendCommand('E_STOP', {});
         // Also stop velocities if teleop is active
-        telemetryService.sendTwistCommand(selectedRobot, { linear_x: 0, angular_z: 0 });
+        telemetryService.sendTwistCommand(selectedRobot, { linear_x_cmd: 0, angular_z_cmd: 0 });
     };
 
     const handleModeSwitch = () => {
