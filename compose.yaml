@@ -9,44 +9,44 @@ services:
     networks:
     - fleet-network
 
-  # api:
-  #   build: .
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     db: 
-  #       condition: service_healthy
-  #   networks:
-  #     - app-network
-  #   environment:
-  #     DB_HOST: db
-  #     DB_PORT: ${DB_PORT}
-  #     DB_NAME: ${DB_NAME}
-  #     DB_USER: ${DB_USER}
-  #     DB_PASSWORD: ${DB_PASSWORD}
-  #   secrets:
-  #     - db_user
-  #     - db_password
-    
-  # db: 
-  #   image: postgres:17
-  #   ports: 
-  #     - "5432:5432" 
-  #   environment:
-  #     POSTGRES_DB: ${DB_NAME}
-  #     POSTGRES_USER: ${DB_USER}
-  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
-  #   volumes: 
-  #     - db-data:/var/lib/postgresql/data
-  #     - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-  #   networks:
-  #     - app-network
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-  #     interval: 5s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 10s
+  db: 
+    image: postgres:17
+    ports: 
+      - "5432:5432" 
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes: 
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - fleet-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      db: 
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      - DB_HOST=db
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}
+    networks:
+      - fleet-network
 
 volumes:
   db-data:
