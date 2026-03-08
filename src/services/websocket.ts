@@ -42,6 +42,16 @@ class TelemetryWebSocket {
         // Real implementation will use this.socket.send()
     }
 
+    sendTwistCommand(robotId: string, twist: { linear_x: number, angular_z: number }) {
+        console.log(`[WebSocket] Sending Twist -> Robot: ${robotId}`, twist);
+        // e.g. this.socket.send(JSON.stringify({ type: 'twist', robot_id: robotId, ...twist }));
+    }
+
+    sendGoalCommand(robotId: string, goal: { x: number, y: number, yaw: number }) {
+        console.log(`[WebSocket] Sending Nav2 Goal -> Robot: ${robotId}`, goal);
+        // e.g. this.socket.send(JSON.stringify({ type: 'goal', robot_id: robotId, ...goal }));
+    }
+
     private startMockStream() {
         let x = 0;
         let battery = 100;
