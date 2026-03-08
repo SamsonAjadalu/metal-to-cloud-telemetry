@@ -12,7 +12,7 @@ const TeleopPad: React.FC<TeleopPadProps> = ({ robotId, disabled }) => {
 
     const handleMove = (event: IJoystickUpdateEvent) => {
         if (event.type === 'stop') {
-            telemetryService.sendTwistCommand(robotId, { linear_x: 0, angular_z: 0 });
+            telemetryService.sendTwistCommand(robotId, { linear_x_cmd: 0, angular_z_cmd: 0 });
             return;
         }
 
@@ -24,11 +24,11 @@ const TeleopPad: React.FC<TeleopPadProps> = ({ robotId, disabled }) => {
         const x_scaled = event.y !== null ? (event.y / 50) * max_velocity : 0; // forward/backward
         const z_scaled = event.x !== null ? -(event.x / 50) * max_angular : 0; // Negative X is left rotation (positive angular) in robotics
 
-        telemetryService.sendTwistCommand(robotId, { linear_x: x_scaled, angular_z: z_scaled });
+        telemetryService.sendTwistCommand(robotId, { linear_x_cmd: x_scaled, angular_z_cmd: z_scaled });
     };
 
     const handleStop = () => {
-        telemetryService.sendTwistCommand(robotId, { linear_x: 0, angular_z: 0 });
+        telemetryService.sendTwistCommand(robotId, { linear_x_cmd: 0, angular_z_cmd: 0 });
     };
 
     return (

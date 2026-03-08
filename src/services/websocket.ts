@@ -42,7 +42,7 @@ class TelemetryWebSocket {
         // Real implementation will use this.socket.send()
     }
 
-    sendTwistCommand(robotId: string, twist: { linear_x: number, angular_z: number }) {
+    sendTwistCommand(robotId: string, twist: { linear_x_cmd: number, angular_z_cmd: number }) {
         console.log(`[WebSocket] Sending Twist -> Robot: ${robotId}`, twist);
         // e.g. this.socket.send(JSON.stringify({ type: 'twist', robot_id: robotId, ...twist }));
     }
