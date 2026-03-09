@@ -17,6 +17,7 @@ class TelemetryBridge(Node):
         super().__init__('telemetry_bridge')
 
         self.robot_id = os.getenv("ROBOT_ID", "tb3_01")
+        self.map_id = "map_01"
         self.session_id = (
             f"session_{self.robot_id}_"
             f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
@@ -25,6 +26,7 @@ class TelemetryBridge(Node):
         self.backend_ws_url = f"ws://localhost:8000/ws/robot/{self.robot_id}"
 
         self.get_logger().info(f"Robot ID: {self.robot_id}")
+        self.get_logger().info(f"Map ID: {self.map_id}")
         self.get_logger().info(f"Session ID: {self.session_id}")
         self.get_logger().info(f"Backend WebSocket URL: {self.backend_ws_url}")
 
@@ -72,6 +74,7 @@ class TelemetryBridge(Node):
         telemetry = {
             "type": "telemetry",
             "robot_id": self.robot_id,
+            "map_id": self.map_id,
             "session_id": self.session_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "x": x,
@@ -79,9 +82,22 @@ class TelemetryBridge(Node):
             "yaw": yaw,
             "linear_x": linear_x,
             "angular_z": angular_z,
+            "battery": self._simulate_battery_level(),
         }
 
         self._enqueue_telemetry(telemetry)
+
+    def _simulate_battery_level(self) -> float:
+        now = datetime.now(timezone.utc)
+        seconds_since_midnight = (
+            now.hour * 3600
+            + now.minute * 60
+            + now.second
+        )
+        day_progress = seconds_since_midnight / 86400.0
+
+        battery_level = 85.0 + 10.0 * math.sin(2.0 * math.pi * day_progress)
+        return round(max(0.0, min(100.0, battery_level)), 1)
 
     def _enqueue_telemetry(self, telemetry: dict):
         try:
