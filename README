@@ -30,13 +30,15 @@ Frontend should expect live telemetry messages like:
 {
   "type": "telemetry",
   "robot_id": "tb3_01",
-  "session_id": "session_tb3_01_20260307_112500",
-  "timestamp": "2026-03-07T16:20:00+00:00",
+  "map_id": "map_01",
+  "session_id": "session_tb3_01_20260307",
+  "timestamp": "2026-03-07T16:20:00Z",
   "x": 1.24,
   "y": 2.81,
   "yaw": 0.52,
   "linear_x": 0.12,
-  "angular_z": 0.03
+  "angular_z": 0.03,
+  "battery": 98.5
 }
 ```
 
@@ -132,18 +134,20 @@ The backend should send command JSON like this (example for `tb3_01`):
 }
 ```
 
-The bridge will send telemetry JSON like this (example for `tb3_01`):
+The bridge will send telemetry JSON like this (example for tb3_01 on map_01):
 ```json
 {
   "type": "telemetry",
   "robot_id": "tb3_01",
-  "session_id": "session_tb3_01_20260307_112500",
-  "timestamp": "2026-03-07T16:20:00+00:00",
+  "map_id": "map_01",
+  "session_id": "session_tb3_01_20260307",
+  "timestamp": "2026-03-07T16:20:00Z",
   "x": 1.24,
   "y": 2.81,
   "yaw": 0.52,
   "linear_x": 0.12,
-  "angular_z": 0.03
+  "angular_z": 0.03,
+  "battery": 98.5
 }
 ```
 
@@ -177,3 +181,46 @@ Install it with:
 pip install -r requirements.txt
 ```
 
+---
+
+## Message Format Specification (LOCKED)
+
+**Do not change these formats unless absolutely necessary. Changing message formats mid-project breaks teams.**
+
+### Telemetry Message
+```json
+{
+  "type": "telemetry",
+  "robot_id": "tb3_01",
+  "map_id": "map_01",
+  "session_id": "session_tb3_01_20260307",
+  "timestamp": "2026-03-07T16:20:00Z",
+  "x": 1.24,
+  "y": 2.81,
+  "yaw": 0.52,
+  "linear_x": 0.12,
+  "angular_z": 0.03,
+  "battery": 98.5
+}
+```
+
+### Command Message
+```json
+{
+  "type": "command",
+  "robot_id": "tb3_01",
+  "linear_x_cmd": 0.2,
+  "angular_z_cmd": 0.0
+}
+```
+
+### Goal Message
+```json
+{
+  "type": "goal",
+  "robot_id": "tb3_01",
+  "x": 4.2,
+  "y": 1.8,
+  "yaw": 0.0
+}
+```
