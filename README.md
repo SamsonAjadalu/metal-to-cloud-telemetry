@@ -21,11 +21,11 @@ The project modularized into the following folders:
 Before running the cluster, create a `.env` file in the root of the repository (next to `compose.yaml`).
 (Note: `.env` should be gitignored and not be committed).
 
-When the following are agreed upon between us add them your `.env` file as follows:
+Add them following to your `.env` file:
 ```
-DB_NAME=telemetry_db
-DB_USER=telemetry_user
-DB_PASSWORD=securepassword
+DB_NAME=metal_to_cloud
+DB_USER=robot_admin
+DB_PASSWORD=secret_password
 DB_PORT=5432
 ```
 
@@ -52,30 +52,25 @@ Once Docker finishes booting up and the database healthcheck passes, the followi
 To shut down the infrastructure, press `Ctrl + C` in the terminal, or run `docker compose down`.
 
 
-## Section-Specific Guides
+## Section-Specific
 
-### For Backend
-* API code is inside `/backend`.
+### Backend
+* **API Code**: The FastAPI application and core logic are located inside the `/backend` directory.
 
-* The `requirements.txt` is seeded with `fastapi[standard]` and `websockets` to get the server running.
+* **Database Connection**: The PostgreSQL database is fully integrated and running.
 
-* **Database Access**: A Postgres container is running and mapped to your environment variables. You will need to add your preferred DB driver (e.g.,`psycopg2-binary`, `sqlalchemy`) to `requirements.txt` to connect. You can use the injected `DATABASE_URL` environment variable.
+* **Data Persistence**: All database records are safely stored in the `pg_data` Docker volume, ensuring the state and telemetry data survive container restarts.
 
-* **Required Routes**: You can expose the following WebSocket routes for the system to connect end-to-end:
-   - `ws://localhost:8000/ws/frontend` (For the React UI)
-   - `ws://localhost:8000/ws/robot/{robot_id}` (For the robots)
+* **Local Database Inspection**: The database port is securely exposed to your local host at `127.0.0.1:5432`.
 
-* Integrating With Frontend:
-   1. Navigate to `frontend/src/services/websocket.ts` and `frontend/src/services/api.ts`.
-   2. Replace the mocked `startMockStream` and `ApiService` promises with your live FastAPI endpoint bindings once the backend is containerized.
-   3. The TypeScript interfaces mapped to the `TelemetryData` schemas are rigidly defined and consumed by the UI charts. As long as your endpoints fulfill the `TelemetryData` and `Session` typed payloads, the UI (Dashboard and Replay views) will automatically hydrate correctly.
+* **Active Routes**: The WebSocket traffic hubs (`/ws/frontend` and `/ws/robot/{robot_id}`) and REST endpoints (`/status`, `/telemetry/`) are live, routing traffic, and accessible at `localhost:8000`.
 
-### For Telemetry
+### Telemetry
 * Integrating With Frontend:
    1. You can review the schemas defined in `frontend/src/services/api.ts` and `frontend/src/services/websocket.ts` to ensure your the robot's/agent's data models match what the dashboard is programmed to digest.
    2. The `Recharts` library is currently mapped to visualize `pose.x`, `pose.y`, `pose.theta`, and `battery`.
 
-### For DevOps
+### DevOps
 * The multi-stage `Dockerfile` (Node build -> Nginx Alpine serving) and `.dockerignore` are separated into the `/frontend` directory.
 
 * `nginx.conf` handles frontend single-page application (SPA) routing fallbacks securely.
