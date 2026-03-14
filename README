@@ -266,43 +266,37 @@ Kill any stale Gazebo processes first (required for a clean run):
 pkill -9 -f "gzserver|gzclient|spawn_entity.py|telemetry_bridge|ros2 launch turtlebot3_gazebo" || true
 ```
 
-Spawn robots (headless — no Gazebo GUI window):
+Spawn robots:
 
 ```bash
-ros2 launch robot_bridge fleet_orchestrator.launch.py \
-  count:=5 \
-  headless:=true \
-  state_file:=fleet_state_run.json \
-  backend_url:=ws://localhost:8000
+ros2 launch robot_bridge fleet_orchestrator.launch.py count:=5
 ```
 
-To add more robots to an existing session (uses the same state file):
+To add more robots to an existing session, run the same command again — the state file tracks what already exists so nothing is duplicated:
 
 ```bash
-ros2 launch robot_bridge fleet_orchestrator.launch.py \
-  count:=5 \
-  headless:=true \
-  state_file:=fleet_state_run.json
-```
-
-Preview what would be launched without actually running anything:
-
-```bash
-ros2 launch robot_bridge fleet_orchestrator.launch.py \
-  count:=3 \
-  dry_run:=true
+ros2 launch robot_bridge fleet_orchestrator.launch.py count:=5
 ```
 
 ### Launch arguments
 
+The launch file takes a single argument:
+
 | Argument | Default | Description |
 |---|---|---|
 | `count` | `1` | Number of **new** robots to add |
-| `robots_per_world` | `20` | Maximum robots per Gazebo world |
-| `headless` | `false` | `true` disables the Gazebo GUI |
-| `state_file` | `fleet_state.json` | Path to the persistent state file |
-| `backend_url` | `ws://localhost:8000` | WebSocket base URL for the backend |
-| `dry_run` | `false` | Print commands without executing |
+
+For advanced options (headless mode, custom state file, backend URL, dry run), call the orchestrator directly:
+
+```bash
+ros2 run robot_bridge fleet_orchestrator \
+  --count 5 \
+  --headless true \
+  --state-file /tmp/fleet_state.json \
+  --backend-url ws://192.168.1.10:8000 \
+  --robots-per-world 10 \
+  --dry-run false
+```
 
 ### State file
 
