@@ -1,33 +1,42 @@
+# Backend API & WebSocket Router
+
+This directory contains the FastAPI backend and database architecture for the "Metal-to-Cloud" telemetry system. It acts as the central high-speed message broker, routing real-time traffic between the React dashboard and the robotic fleet, while efficiently persisting historical data to PostgreSQL.
+
+## Backend Structure
+
+The backend is designed for high concurrency and is modularized into the following core components:
+
+* `main.py`: The FastAPI application, containing the ConnectionManager for precise WebSocket routing and an asynchronous Batch Insert Engine to handle massive load spikes.
+* `database.py`: SQLAlchemy ORM configurations and strictly defined table schemas (e.g., telemetries).
+* `test_1000_robots.py`: A local load-testing script capable of simulating 1,000 concurrent robot connections to validate system scalability.
+* `Dockerfile`: A multi-stage, lightweight container definition for the Python environment.
+
+## How to Run the Backend (for Local Development)
+
+### Set up Environment Variables
+The backend relies on the master `compose.yaml` to inject the database credentials. Ensure your local `.env` matches the agreed-upon PostgreSQL variables. The backend will automatically construct the following connection string internally:
 
 
-Step 1: Spin up the Backend (For Everyone)
-Pull my code and run this in your terminal:
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}
 
-Bash
-docker-compose up -d --build
-docker-compose restart api
-(This starts the FastAPI server and the PostgreSQL database in the background.)
+### Access the Services
+Once the master `docker compose up --build` finishes booting up and the database healthcheck passes, the backend services will be available:
 
-Step 2: Test the REST APIs & Database (Especially for Person A - Frontend)
-You don't need Postman or any frontend code to test the database. FastAPI provides a built-in interactive dashboard.
+* **Backend API Docs (Swagger UI):** http://localhost:8000/docs
+* **Frontend WebSocket Entry:** `ws://localhost:8000/ws/frontend`
+* **Robot WebSocket Entry:** `ws://localhost:8000/ws/robot/{robot_id}`
 
-Go to  http://localhost:8000/docs
+## Section-Specific Guides
 
-Create a Mission: Click POST /missions/ -> Try it out. Type a robot name (e.g., "Wall-E") and click Execute. You will see the database assign it a mission_id (e.g., 1).
+### For Frontend
+* **Data Flow:** The backend acts as a pure pass-through router. It will not mutate the command or goal payloads. As long as your UI sends the exact JSON schema defined in your ApiService, the backend will route it instantly to the correct robot_id.
+* **Map Handling:** The backend only stores and forwards the map_id (e.g., "map_01") as a string within the JSON payload. The dashboard should use this string to fetch the actual .png map from the cloud bucket provided by DevOps.
 
-Save Telemetry: Click POST /telemetry/ -> Try it out. Enter the mission_id you just got, plus some dummy coordinates (x: 10.5, y: 20.1). Click Execute.
+### For Telemetry (Robot Bridge)
+* **Performance & Load Testing:** The backend has been load-tested to successfully support 1,000 concurrent robot connections. To prevent database deadlocks, incoming telemetry is buffered in memory and bulk-inserted into PostgreSQL every second. You can blast data at the WebSocket endpoint without throttling.
+* **Map Files:** To maintain high-speed routing, the backend does not serve .yaml or .pgm binary map files. The robot bridge/Nav2 node must fetch these navigation files directly from the DevOps cloud bucket using the map_id string provided in the telemetry loop.
 
-Result: The data is now permanently saved in the local PostgreSQL database!
-
-Step 3: Test the WebSocket Connection (Especially for Person D - Sim/Telemetry)
-Currently, I have set up a basic Echo WebSocket at /ws/telemetry to verify the connection is working.
-
-If you have a simple WebSocket client (or a Python test script), connect to ws://localhost:8000/ws/telemetry.
-
-Send any JSON payload or text message.
-
-Result: The backend will instantly catch it and echo it back to you: Server Echo: <your_message>.
-(Note: In Week 2, this will be upgraded to the ConnectionManager to route traffic properly based on robot_id and the frontend endpoint).
-
-Step 4: DevOps Review (Especially for Person C - DevOps)
-The docker-compose.yml and Dockerfile are fully configured with a named volume (pg_data) for state persistence. It is ready for your review and Swarm integration.
+### For DevOps
+* **Containerization:** The backend Dockerfile uses python:3.10-slim and implements strict layer caching for requirements.txt to speed up CI/CD pipeline builds.
+* **Logging:** The PYTHONUNBUFFERED=1 environment variable is set in the Dockerfile to ensure real-time log streaming (e.g., batch insert notifications) directly to the Docker daemon.
+* **Orchestration:** The backend container strictly relies on the PostgreSQL condition: service_healthy check in compose.yaml to ensure the database is fully initialized before the FastAPI server boots.
