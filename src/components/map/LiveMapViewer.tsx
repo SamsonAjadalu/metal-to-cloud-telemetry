@@ -21,7 +21,8 @@ const LiveMapViewer: React.FC<LiveMapViewerProps> = ({ robotId, telemetry }) => 
 
     // Using a placeholder blank/grid image for now.
     // Replace with real S3 map URL when available.
-    const mapUrl = '/images/gallery/arm_workspace.png'; // fallback layout map for testing
+    // Map URL depends on telemetry; fallback to map_01.png
+    const mapUrl = telemetry?.map_id ? `/maps/${telemetry.map_id}.png` : '/maps/map_01.png';
 
     useEffect(() => {
         const img = new Image();
@@ -31,7 +32,10 @@ const LiveMapViewer: React.FC<LiveMapViewerProps> = ({ robotId, telemetry }) => 
             setMapLoaded(true);
             drawMap();
         };
-    }, []);
+        img.onerror = () => {
+            console.warn(`[LiveMapViewer] Failed to load map from ${mapUrl}.`);
+        };
+    }, [mapUrl]);
 
     useEffect(() => {
         if (mapLoaded) {
