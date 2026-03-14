@@ -43,6 +43,19 @@ services:
     networks:
       - fleet-network
 
+  bridge:
+    build:
+      context: ./robot_bridge
+      dockerfile: Dockerfile
+    environment:
+      - ROBOT_ID=${ROBOT_ID:-tb3_01}
+      - BACKEND_HOST=api
+    networks:
+      - fleet-network
+    depends_on:
+      - api
+
+
 volumes:
   pg_data:
 
