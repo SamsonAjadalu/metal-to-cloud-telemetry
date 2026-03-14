@@ -1,5 +1,6 @@
 services:
   frontend:
+    image: wofa/m2c-frontend:latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -9,7 +10,7 @@ services:
     networks:
     - fleet-network
 
-  db: 
+  db:
     image: postgres:15
     ports:
       - "127.0.0.1:5432:5432"
@@ -17,7 +18,7 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes: 
+    volumes:
       - pg_data:/var/lib/postgresql/data
     networks:
       - fleet-network
@@ -29,12 +30,12 @@ services:
       start_period: 10s
 
   api:
+    image: wofa/m2c-api:latest
     build:
       context: ./backend
       dockerfile: Dockerfile
     depends_on:
-      db: 
-        condition: service_healthy
+      - db
     ports:
       - "8000:8000"
     restart: unless-stopped
@@ -44,6 +45,7 @@ services:
       - fleet-network
 
   bridge:
+    image: wofa/m2c-bridge:latest
     build:
       context: ./robot_bridge
       dockerfile: Dockerfile
@@ -61,4 +63,4 @@ volumes:
 
 networks:
   fleet-network:
-    driver: bridge
+    driver: overlay
