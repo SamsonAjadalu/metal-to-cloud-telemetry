@@ -180,12 +180,16 @@ def allocate_robots(
     for world in worlds:
         existing_robot_ids.update(world["robots"])
 
+    print(f"[fleet] Spawning {count} robot(s). Existing worlds: {len(worlds)}.")
+
     for world in worlds:
         if pending <= 0:
             break
 
         capacity = int(world.get("capacity", robots_per_world))
         free_slots = capacity - len(world["robots"])
+        if free_slots > 0:
+            print(f"[fleet] Filling existing world {world['world_id']} ({free_slots} free slot(s))")
         while pending > 0 and free_slots > 0:
             robot_id = make_robot_id(state["next_robot_index"])
             while robot_id in existing_robot_ids:
@@ -205,11 +209,18 @@ def allocate_robots(
                 print(f"[DRY-RUN] {bridge_cmd}")
                 launched = True
             else:
+                print(f"[fleet] Spawning {robot_id} in {world['world_id']} at ({x:.1f}, {y:.1f}) ...")
                 spawn_log = logs_dir / f"spawn_{robot_id}.log"
                 bridge_log = logs_dir / f"bridge_{robot_id}.log"
                 spawn_ok = run_blocking(spawn_cmd, spawn_log)
-                bridge_ok = run_detached(bridge_cmd, bridge_log) if spawn_ok else False
+                if spawn_ok:
+                    print(f"[fleet] {robot_id} spawned — starting bridge ...")
+                    bridge_ok = run_detached(bridge_cmd, bridge_log)
+                else:
+                    bridge_ok = False
                 launched = spawn_ok and bridge_ok
+                if launched:
+                    print(f"[fleet] {robot_id} ready")
 
             if not launched:
                 raise RuntimeError(
@@ -232,6 +243,7 @@ def allocate_robots(
             print(f"[DRY-RUN] {world_cmd}")
             world_started = True
         else:
+            print(f"[fleet] Starting Gazebo world {world_id} ({'headless' if headless else 'GUI'}) ...")
             world_log = logs_dir / f"world_{world_id}.log"
             world_started = run_detached(world_cmd, world_log)
 
@@ -242,12 +254,14 @@ def allocate_robots(
             )
 
         if not dry_run:
+            print(f"[fleet] Waiting for Gazebo to be ready (up to 24s) ...")
             time.sleep(4.0)
             if not wait_for_service("/spawn_entity", timeout_sec=20):
                 raise RuntimeError(
                     f"World started but /spawn_entity service did not become ready for {world_id}. "
                     f"Check logs in {logs_dir}"
                 )
+            print(f"[fleet] Gazebo ready.")
 
         world = {
             "world_id": world_id,
@@ -279,11 +293,18 @@ def allocate_robots(
                 print(f"[DRY-RUN] {bridge_cmd}")
                 launched = True
             else:
+                print(f"[fleet] Spawning {robot_id} in {world_id} at ({x:.1f}, {y:.1f}) ...")
                 spawn_log = logs_dir / f"spawn_{robot_id}.log"
                 bridge_log = logs_dir / f"bridge_{robot_id}.log"
                 spawn_ok = run_blocking(spawn_cmd, spawn_log)
-                bridge_ok = run_detached(bridge_cmd, bridge_log) if spawn_ok else False
+                if spawn_ok:
+                    print(f"[fleet] {robot_id} spawned — starting bridge ...")
+                    bridge_ok = run_detached(bridge_cmd, bridge_log)
+                else:
+                    bridge_ok = False
                 launched = spawn_ok and bridge_ok
+                if launched:
+                    print(f"[fleet] {robot_id} ready")
 
             if not launched:
                 raise RuntimeError(
