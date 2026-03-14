@@ -224,3 +224,140 @@ pip install -r requirements.txt
   "yaw": 0.0
 }
 ```
+
+---
+
+## Fleet Orchestrator
+
+The fleet orchestrator (`fleet_orchestrator.py`) automates spawning multiple TurtleBot3 robots across one or more Gazebo worlds and starting a `telemetry_bridge` instance for each robot.
+
+### How it works
+
+1. Loads a persistent JSON state file (default `fleet_state.json`) that tracks which worlds and robots already exist.
+2. Fills free slots in existing worlds first, then creates new Gazebo worlds as needed.
+3. For each new robot:
+   - Waits for Gazebo's `/spawn_entity` service to be ready.
+   - Spawns the robot entity at a grid position (5 columns × N rows, 1.5 m spacing).
+   - Starts a `telemetry_bridge` process in the background with the robot's namespaced topics.
+4. Saves updated state back to the JSON file.
+
+Robots are named `tb3_001`, `tb3_002`, … and worlds are named `map_01`, `map_02`, …
+
+Robot topics are namespaced:
+- `/tb3_001/odom` — odometry
+- `/tb3_001/cmd_vel` — velocity command
+
+Each bridge connects to the backend at `{backend_url}/ws/robot/{robot_id}`.
+
+### Build
+
+```bash
+cd /path/to/metal-to-cloud-telemetry
+source /opt/ros/humble/setup.bash
+colcon build --symlink-install
+source install/setup.bash
+```
+
+### Quick start
+
+Kill any stale Gazebo processes first (required for a clean run):
+
+```bash
+pkill -9 -f "gzserver|gzclient|spawn_entity.py|telemetry_bridge|ros2 launch turtlebot3_gazebo" || true
+```
+
+Spawn robots (headless — no Gazebo GUI window):
+
+```bash
+ros2 launch robot_bridge fleet_orchestrator.launch.py \
+  count:=5 \
+  headless:=true \
+  state_file:=fleet_state_run.json \
+  backend_url:=ws://localhost:8000
+```
+
+To add more robots to an existing session (uses the same state file):
+
+```bash
+ros2 launch robot_bridge fleet_orchestrator.launch.py \
+  count:=5 \
+  headless:=true \
+  state_file:=fleet_state_run.json
+```
+
+Preview what would be launched without actually running anything:
+
+```bash
+ros2 launch robot_bridge fleet_orchestrator.launch.py \
+  count:=3 \
+  dry_run:=true
+```
+
+### Launch arguments
+
+| Argument | Default | Description |
+|---|---|---|
+| `count` | `1` | Number of **new** robots to add |
+| `robots_per_world` | `20` | Maximum robots per Gazebo world |
+| `headless` | `false` | `true` disables the Gazebo GUI |
+| `state_file` | `fleet_state.json` | Path to the persistent state file |
+| `backend_url` | `ws://localhost:8000` | WebSocket base URL for the backend |
+| `dry_run` | `false` | Print commands without executing |
+
+### State file
+
+The state file is a JSON file that tracks all spawned worlds and robots so re-running the orchestrator adds robots instead of duplicating existing ones.
+
+Example:
+```json
+{
+  "next_world_index": 2,
+  "next_robot_index": 6,
+  "worlds": [
+    {
+      "world_id": "map_01",
+      "world_name": "sim_world_01",
+      "capacity": 20,
+      "headless": true,
+      "robots": ["tb3_001", "tb3_002", "tb3_003", "tb3_004", "tb3_005"]
+    }
+  ]
+}
+```
+
+State files are excluded from version control via `.gitignore`.
+
+### Logs
+
+Per-robot and per-world logs are written to `.fleet_logs/` next to the state file:
+
+```
+.fleet_logs/
+  world_map_01.log
+  spawn_tb3_001.log
+  bridge_tb3_001.log
+  ...
+```
+
+### Environment variable overrides
+
+| Variable | Description |
+|---|---|
+| `WORLD_CMD_TEMPLATE` | Override the Gazebo world launch command |
+| `SPAWN_ROBOT_CMD_TEMPLATE` | Override the spawn_entity command |
+| `BRIDGE_CMD_TEMPLATE` | Override the telemetry_bridge command |
+| `TURTLEBOT3_MODEL` | TurtleBot3 model name (default: `burger`) |
+
+### telemetry_bridge environment variables
+
+Each bridge instance is configured entirely through environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `ROBOT_ID` | *(required)* | Robot identifier |
+| `MAP_ID` | `map_01` | Map/world identifier |
+| `ODOM_TOPIC` | `/odom` | Odometry topic to subscribe |
+| `CMD_VEL_TOPIC` | `/cmd_vel` | Velocity topic to publish |
+| `BACKEND_WS_URL` | `ws://localhost:8000/ws/robot/{robot_id}` | Full WebSocket URL for the backend |
+
+The orchestrator sets all of these automatically for each robot.
