@@ -1,0 +1,27 @@
+# ROS 2 build artifacts
+build/
+install/
+log/
+
+# Fleet orchestrator runtime files
+fleet_state*.json
+.fleet_logs/
+
+# Local development notes
+LOCAL_TEST_SUMMARY.md
+
+# Frontend / Node
+node_modules/
+.vite/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# OS
+.DS_Store
+
+# Project assets (local)
+project-assets/
