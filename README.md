@@ -1,6 +1,6 @@
 # Fleet Telemetry & Control System
 
-This repository contains the complete "Metal-to-Cloud" infrastructure for our robotic fleet telemetry system. It includes the React frontend, the FastAPI backend, the PostgreSQL database, and (soon!) the ROS 2 simulated robot bridge.
+This repository contains the complete "Metal-to-Cloud" infrastructure for our robotic fleet telemetry system. It includes the React frontend, the FastAPI backend, the PostgreSQL database, and the ROS 2 simulated robot bridge.
 
 ## Repository Structure
 The project modularized into the following folders:
@@ -9,9 +9,9 @@ The project modularized into the following folders:
 
 - `/backend`: FastAPI application and WebSocket server.
 
-- `compose.yaml`: The master orchestration file that runs the cloud infrastructure.
+- `/robot_bridge`: ROS 2 (Humble) Python bridge that translates robot telemetry and commands.
 
-- Soon: `/telemetry_sim`: ROS 2 Python bridge for Gazebo TurtleBot3 simulation. (Note: Runs outside of Docker).
+- `compose.yaml`: The master orchestration file that runs the cloud infrastructure.
 
 
 ## How to Run the Infrastructure (for Local Development)
@@ -27,6 +27,7 @@ DB_NAME=metal_to_cloud
 DB_USER=robot_admin
 DB_PASSWORD=secret_password
 DB_PORT=5432
+ROBOT_ID=tb3_01
 ```
 
 2. **Start the Cluster**
@@ -66,7 +67,9 @@ To shut down the infrastructure, press `Ctrl + C` in the terminal, or run `docke
 * **Active Routes**: The WebSocket traffic hubs (`/ws/frontend` and `/ws/robot/{robot_id}`) and REST endpoints (`/status`, `/telemetry/`) are live, routing traffic, and accessible at `localhost:8000`.
 
 ### Telemetry
-* Integrating With Frontend:
+* **Bridge Containerization**: The ROS 2 Python bridge is fully containerized and boots up automatically with docker compose and connects to the backend using the ROBOT_ID and BACKEND_HOST environment variables.
+
+* **Integrating With Frontend**:
    1. You can review the schemas defined in `frontend/src/services/api.ts` and `frontend/src/services/websocket.ts` to ensure your the robot's/agent's data models match what the dashboard is programmed to digest.
    2. The `Recharts` library is currently mapped to visualize `pose.x`, `pose.y`, `pose.theta`, and `battery`.
 
@@ -75,4 +78,6 @@ To shut down the infrastructure, press `Ctrl + C` in the terminal, or run `docke
 
 * `nginx.conf` handles frontend single-page application (SPA) routing fallbacks securely.
 
-* The frontend is orchestrated via the root `compose.yaml` file, mapping the internal NGINX port 80 to the host port 3000.
+* The robot bridge utilizes the official `osrf/ros:humble-desktop` base image to strictly isolate heavy robotics dependencies from the rest of the cloud architecture.
+
+* All services (Frontend, Backend, Database, and Bridge) are orchestrated via the root `compose.yaml` file, networked via the internal `fleet-network`.
