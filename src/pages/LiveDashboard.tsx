@@ -73,6 +73,10 @@ const Dashboard: React.FC = () => {
                             <p><strong>X:</strong> {telemetry.pose.x.toFixed(2)} m</p>
                             <p><strong>Y:</strong> {telemetry.pose.y.toFixed(2)} m</p>
                             <p><strong>Heading:</strong> {telemetry.pose.theta.toFixed(2)} rad</p>
+
+                            <h3 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '0.5rem', marginTop: '1rem' }}>Velocity</h3>
+                            <p><strong>Linear:</strong> {telemetry.velocity?.linear_x?.toFixed(2) ?? '0.00'} m/s</p>
+                            <p><strong>Angular:</strong> {telemetry.velocity?.angular_z?.toFixed(2) ?? '0.00'} rad/s</p>
                         </div>
 
                         <div className="card" style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>

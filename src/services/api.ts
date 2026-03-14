@@ -14,6 +14,15 @@ export interface Session {
  */
 class ApiService {
     async getSessions(): Promise<Session[]> {
+        try {
+            const res = await fetch('http://localhost:8000/api/sessions');
+            if (res.ok) {
+                return await res.json();
+            }
+        } catch (err) {
+            console.warn('[ApiService] Backend API not available for getSessions, falling back to mock.');
+        }
+
         return new Promise((resolve) => {
             setTimeout(() => {
                 resolve([
@@ -24,7 +33,16 @@ class ApiService {
         });
     }
 
-    async getSessionTelemetry(_sessionId: string): Promise<any[]> {
+    async getSessionTelemetry(sessionId: string): Promise<any[]> {
+        try {
+            const res = await fetch(`http://localhost:8000/api/sessions/${sessionId}/telemetry`);
+            if (res.ok) {
+                return await res.json();
+            }
+        } catch (err) {
+            console.warn(`[ApiService] Backend API not available for getSessionTelemetry(${sessionId}), falling back to mock.`);
+        }
+
         // Return mock timeseries data for the chosen session
         return new Promise((resolve) => {
             setTimeout(() => {
