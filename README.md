@@ -9,7 +9,7 @@ The project modularized into the following folders:
 
 - `/backend`: FastAPI application and WebSocket server.
 
-- `/robot_bridge`: ROS 2 (Humble) Python bridge that translates robot telemetry and commands.
+- `/robot_bridge`: ROS 2 Python bridge that translates robot telemetry and commands.
 
 - `compose.yaml`: The master orchestration file that runs the cloud infrastructure.
 
