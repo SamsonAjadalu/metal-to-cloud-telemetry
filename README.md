@@ -16,9 +16,9 @@ The backend is designed for high concurrency and is modularized into the followi
 ### Set up Environment Variables
 The backend relies on the master `compose.yaml` to inject the database credentials. Ensure your local `.env` matches the agreed-upon PostgreSQL variables. The backend will automatically construct the following connection string internally:
 
-
+```bash
 DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}
-
+```
 ### Access the Services
 Once the master `docker compose up --build` finishes booting up and the database healthcheck passes, the backend services will be available:
 
