@@ -1,0 +1,66 @@
+services:
+  frontend:
+    image: wofa/m2c-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    networks:
+    - fleet-network
+
+  db:
+    image: postgres:15
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - fleet-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    image: wofa/m2c-api:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+    networks:
+      - fleet-network
+
+  bridge:
+    image: wofa/m2c-bridge:latest
+    build:
+      context: ./robot_bridge
+      dockerfile: Dockerfile
+    environment:
+      - ROBOT_ID=${ROBOT_ID:-tb3_01}
+      - BACKEND_HOST=api
+    networks:
+      - fleet-network
+    depends_on:
+      - api
+
+
+volumes:
+  pg_data:
+
+networks:
+  fleet-network:
+    driver: overlay
