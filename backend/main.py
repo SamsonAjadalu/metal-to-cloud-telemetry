@@ -227,13 +227,15 @@ async def robot_endpoint(websocket: WebSocket, robot_id: str):
         while True:
             # 1. Receive real-time telemetry from the robot
             data = await websocket.receive_json()
+
+            data["robot_id"] = robot_id
             
             # 2. Act as the message router: instantly forward the data to the frontend dashboard
             await manager.send_to_frontend(data)
             
             # 3. NEW High-Concurrency Logic: Format the data for the database and append it to the buffer
             db_item = {
-                "robot_id": data.get("robot_id"),
+                "robot_id": robot_id,
                 "map_id": data.get("map_id"),
                 "session_id": data.get("session_id"),
                 "pose_x": data.get("x"),
