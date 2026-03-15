@@ -6,8 +6,8 @@ This repository contains the complete "Metal-to-Cloud" infrastructure for our ro
 
 ### 1. Backend Engineer (Person B)
 The React frontend is now wired to connect strictly to real FastAPI endpoints. No more internal mocking needs to be disabled!
-* **WebSocket**: Ensure your FastAPI app exposes `ws://localhost:8000/ws/frontend`. The React app will auto-reconnect and listen for live telemetry broadcasts.
-* **REST API**: Ensure you have implemented `GET http://localhost:8000/api/sessions` and `GET http://localhost:8000/api/sessions/{id}/telemetry` for the Replay Analytics view.
+* **WebSocket**: Ensure your FastAPI app exposes `ws://159.203.4.11:8000/ws/frontend`. The React app will auto-reconnect and listen for live telemetry broadcasts.
+* **REST API**: Ensure you have implemented `GET http://159.203.4.11:8000/api/sessions` and `GET http://159.203.4.11:8000/api/sessions/{id}/telemetry` for the Replay Analytics view.
 * **Command Routing**: The UI will emit commands over the WebSocket interface. You must parse these payloads and forward them to the ROS2/Python agent:
   * **Twist:** `{ "type": "command", "robot_id": "tb3_01", "linear_x_cmd": 0.2, "angular_z_cmd": 0.0 }`
   * **Nav2 Goal:** `{ "type": "goal", "robot_id": "tb3_01", "x": 4.2, "y": 1.8, "yaw": 0.0 }`
@@ -82,8 +82,8 @@ docker compose up --build
 Once Docker finishes booting up and the database healthcheck passes, the following services will be available:
 
 - Frontend Dashboard: http://localhost:3000 (if dockerized) or `localhost:5173` (if `npm run dev`)
-- Backend API: http://localhost:8000
-- Backend API Docs: http://localhost:8000/docs
+- Backend API: http://159.203.4.11:8000
+- Backend API Docs: http://159.203.4.11:8000/docs
 - PostgreSQL Database: `localhost:5432`
 
 To shut down the infrastructure, press `Ctrl + C` in the terminal, or run `docker compose down`.
@@ -95,7 +95,7 @@ To shut down the infrastructure, press `Ctrl + C` in the terminal, or run `docke
 * **Database Connection**: The PostgreSQL database is fully integrated and running.
 * **Data Persistence**: All database records are safely stored in the `pg_data` Docker volume, ensuring the state and telemetry data survive container restarts.
 * **Local Database Inspection**: The database port is securely exposed to your local host at `127.0.0.1:5432`.
-* **Active Routes**: The WebSocket traffic hubs (`/ws/frontend` and `/ws/robot/{robot_id}`) and REST endpoints (`/status`, `/telemetry/`) are live, routing traffic, and accessible at `localhost:8000`.
+* **Active Routes**: The WebSocket traffic hubs (`/ws/frontend` and `/ws/robot/{robot_id}`) and REST endpoints (`/status`, `/telemetry/`) are live, routing traffic, and accessible at `159.203.4.11:8000`.
 
 ### Telemetry
 * **Bridge Containerization**: The ROS 2 Python bridge is fully containerized and boots up automatically with docker compose and connects to the backend using the ROBOT_ID and BACKEND_HOST environment variables.
