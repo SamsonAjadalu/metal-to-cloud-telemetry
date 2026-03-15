@@ -170,14 +170,14 @@ def get_session_history(session_id: str, db: Session = Depends(get_db)):
     
     safe_data = []
     for row in history:
-        # 获取当前的 map_id (兜底使用 map_01)
+        # fetch current map_id (default map_01)
         current_map = row.map_id if row.map_id else "map_01"
         base_cloud_url = f"https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/{current_map}"
         
         safe_data.append({
             "robot_id": row.robot_id,
             "map_id": current_map,
-            # 🌟 新增：一次性给齐三个云端文件的完整直链
+            # three map's urls on cloud
             "map_png_url": f"{base_cloud_url}/{current_map}.png",
             "map_pgm_url": f"{base_cloud_url}/{current_map}.pgm",
             "map_yaml_url": f"{base_cloud_url}/{current_map}.yaml",
