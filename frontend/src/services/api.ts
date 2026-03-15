@@ -15,7 +15,7 @@ export interface Session {
 class ApiService {
     async getSessions(): Promise<Session[]> {
         try {
-            const res = await fetch('http://localhost:8000/api/sessions');
+            const res = await fetch('http://159.203.4.11:8000/api/sessions');
             if (res.ok) {
                 return await res.json();
             }
@@ -35,7 +35,7 @@ class ApiService {
 
     async getSessionTelemetry(sessionId: string): Promise<any[]> {
         try {
-            const res = await fetch(`http://localhost:8000/api/sessions/${sessionId}/telemetry`);
+            const res = await fetch(`http://159.203.4.11:8000/api/sessions/${sessionId}/telemetry`);
             if (res.ok) {
                 return await res.json();
             }
