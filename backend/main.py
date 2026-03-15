@@ -164,19 +164,23 @@ def get_all_sessions(db: Session = Depends(get_db)):
 
 @app.get("/sessions/{session_id}")
 def get_session_history(session_id: str, db: Session = Depends(get_db)):
-    """Fetch the complete telemetry history for a specific session for UI playback."""
-    # Utilizing the index=True we set in database.py for lightning-fast queries,
-    # and sorting the results chronologically by timestamp
     history = db.query(database.Telemetry).filter(
         database.Telemetry.session_id == session_id
     ).order_by(database.Telemetry.timestamp.asc()).all()
     
-    # NEW SAFEGUARD
     safe_data = []
     for row in history:
+        # 获取当前的 map_id (兜底使用 map_01)
+        current_map = row.map_id if row.map_id else "map_01"
+        base_cloud_url = f"https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/{current_map}"
+        
         safe_data.append({
             "robot_id": row.robot_id,
-            "map_id": row.map_id,
+            "map_id": current_map,
+            # 🌟 新增：一次性给齐三个云端文件的完整直链
+            "map_png_url": f"{base_cloud_url}/{current_map}.png",
+            "map_pgm_url": f"{base_cloud_url}/{current_map}.pgm",
+            "map_yaml_url": f"{base_cloud_url}/{current_map}.yaml",
             "session_id": row.session_id,
             "timestamp": row.timestamp.isoformat() if row.timestamp else None,
             "x": row.pose_x,
@@ -192,7 +196,6 @@ def get_session_history(session_id: str, db: Session = Depends(get_db)):
         "total_records": len(safe_data),
         "data": safe_data
     }
-
 # 4. WebSocket Routing Endpoints (The actual traffic hub)
 
 
