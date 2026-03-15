@@ -14,6 +14,15 @@ export interface Session {
  */
 class ApiService {
     async getSessions(): Promise<Session[]> {
+        try {
+            const res = await fetch('http://localhost:8000/api/sessions');
+            if (res.ok) {
+                return await res.json();
+            }
+        } catch (err) {
+            console.warn('[ApiService] Backend API not available for getSessions, falling back to mock.');
+        }
+
         return new Promise((resolve) => {
             setTimeout(() => {
                 resolve([
@@ -24,17 +33,37 @@ class ApiService {
         });
     }
 
-    async getSessionTelemetry(_sessionId: string): Promise<any[]> {
+    async getSessionTelemetry(sessionId: string): Promise<any[]> {
+        try {
+            const res = await fetch(`http://localhost:8000/api/sessions/${sessionId}/telemetry`);
+            if (res.ok) {
+                return await res.json();
+            }
+        } catch (err) {
+            console.warn(`[ApiService] Backend API not available for getSessionTelemetry(${sessionId}), falling back to mock.`);
+        }
+
         // Return mock timeseries data for the chosen session
         return new Promise((resolve) => {
             setTimeout(() => {
                 const data = [];
                 let battery = 100;
                 let ms = Date.now() - 3600000; // 1 hour ago
+
+                let x = 0;
+                let y = 0;
+                let yaw = 0;
+
                 for (let i = 0; i < 60; i++) {
                     ms += 60000;
                     battery -= Math.random();
-                    data.push({ timestamp: ms, battery: battery });
+
+                    // Simulate some basic circular/wavy movement
+                    x += Math.cos(yaw) * 0.5;
+                    y += Math.sin(yaw) * 0.5;
+                    yaw += 0.1;
+
+                    data.push({ timestamp: ms, battery: battery, x: parseFloat(x.toFixed(2)), y: parseFloat(y.toFixed(2)), yaw: parseFloat(yaw.toFixed(2)) });
                 }
                 resolve(data);
             }, 500);
