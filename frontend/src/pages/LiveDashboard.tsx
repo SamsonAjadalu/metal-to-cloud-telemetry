@@ -70,13 +70,13 @@ const Dashboard: React.FC = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginTop: '1rem' }}>
                         <div className="card" style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                             <h3 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '0.5rem', marginTop: 0 }}>Robot Pose</h3>
-                            <p><strong>X:</strong> {telemetry.pose.x.toFixed(2)} m</p>
-                            <p><strong>Y:</strong> {telemetry.pose.y.toFixed(2)} m</p>
-                            <p><strong>Heading:</strong> {telemetry.pose.theta.toFixed(2)} rad</p>
+                            <p><strong>X:</strong> {telemetry.x?.toFixed(2)} m</p>
+                            <p><strong>Y:</strong> {telemetry.y?.toFixed(2)} m</p>
+                            <p><strong>Heading:</strong> {telemetry.yaw?.toFixed(2)} rad</p>
 
                             <h3 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '0.5rem', marginTop: '1rem' }}>Velocity</h3>
-                            <p><strong>Linear:</strong> {telemetry.velocity?.linear_x?.toFixed(2) ?? '0.00'} m/s</p>
-                            <p><strong>Angular:</strong> {telemetry.velocity?.angular_z?.toFixed(2) ?? '0.00'} rad/s</p>
+                            <p><strong>Linear:</strong> {telemetry.linear_x?.toFixed(2) ?? '0.00'} m/s</p>
+                            <p><strong>Angular:</strong> {telemetry.angular_z?.toFixed(2) ?? '0.00'} rad/s</p>
                         </div>
 
                         <div className="card" style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
