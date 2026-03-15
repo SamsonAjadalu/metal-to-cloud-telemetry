@@ -44,18 +44,18 @@ services:
     networks:
       - fleet-network
 
-  bridge:
-    image: wofa/m2c-bridge:latest
-    build:
-      context: ./robot_bridge
-      dockerfile: Dockerfile
-    environment:
-      - ROBOT_ID=${ROBOT_ID:-tb3_01}
-      - BACKEND_HOST=api
-    networks:
-      - fleet-network
-    depends_on:
-      - api
+  # bridge:
+  #   image: wofa/m2c-bridge:latest
+  #   build:
+  #     context: ./robot_bridge
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     - ROBOT_ID=${ROBOT_ID:-tb3_01}
+  #     - BACKEND_HOST=api
+  #   networks:
+  #     - fleet-network
+  #   depends_on:
+  #     - api
 
 
 volumes:
@@ -63,4 +63,4 @@ volumes:
 
 networks:
   fleet-network:
-    driver: overlay
+    driver: bridge

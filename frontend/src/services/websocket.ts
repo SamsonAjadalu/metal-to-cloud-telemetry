@@ -2,11 +2,15 @@
 
 export interface TelemetryData {
     timestamp: number;
-    pose: { x: number; y: number; theta: number };
-    battery: number;
-    status: 'IDLE' | 'MOVING' | 'ERROR';
+    robot_id?: string;
     map_id?: string;
-    velocity?: { linear_x: number; angular_z: number };
+    battery: number;
+    status: string;
+    x: number;
+    y: number;
+    yaw: number;
+    linear_x?: number;
+    angular_z?: number;
 }
 
 /**

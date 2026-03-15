@@ -81,7 +81,7 @@ const LiveMapViewer: React.FC<LiveMapViewerProps> = ({ robotId, telemetry }) => 
 
         // Draw robot pose if available
         if (telemetry) {
-            drawRobot(ctx, telemetry.pose.x, telemetry.pose.y, telemetry.pose.theta, canvas.width, canvas.height);
+            drawRobot(ctx, telemetry.x, telemetry.y, telemetry.yaw, canvas.width, canvas.height);
         }
     };
 
