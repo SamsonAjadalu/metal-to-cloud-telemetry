@@ -18,7 +18,7 @@ class TelemetryWebSocket {
     private socket: WebSocket | null = null;
     private onMessageCallback: ((data: TelemetryData) => void) | null = null;
 
-    constructor(url: string = 'ws://localhost:8000/ws/frontend') {
+    constructor(url: string = 'ws://159.203.4.11:8000/ws/frontend') {
         this.url = url;
     }
 

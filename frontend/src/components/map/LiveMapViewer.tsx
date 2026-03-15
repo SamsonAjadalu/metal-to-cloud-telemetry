@@ -22,7 +22,7 @@ const LiveMapViewer: React.FC<LiveMapViewerProps> = ({ robotId, telemetry }) => 
     // Using a placeholder blank/grid image for now.
     // Replace with real S3 map URL when available.
     // Map URL depends on telemetry; fallback to map_01.png
-    const mapUrl = telemetry?.map_id ? `/maps/${telemetry.map_id}.png` : '/maps/map_01.png';
+    const mapUrl = telemetry?.map_id ? `http://159.203.4.11/maps/${telemetry.map_id}.png` : 'http://159.203.4.11/maps/map_01.png';
 
     useEffect(() => {
         const img = new Image();
