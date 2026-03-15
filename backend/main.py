@@ -150,6 +150,49 @@ def save_telemetry(data: TelemetryPayload, db: Session = Depends(get_db)):
     return {"status": "success", "saved_robot": data.robot_id}
 
 
+
+# Replay Endpoints (Historical Data for UI)
+
+
+@app.get("/sessions")
+def get_all_sessions(db: Session = Depends(get_db)):
+    """Fetch a list of all unique session IDs from the database."""
+    # Query all distinct session_ids
+    sessions = db.query(database.Telemetry.session_id).distinct().all()
+    # Clean up the list of tuples into a simple list of strings
+    return {"sessions": [s[0] for s in sessions if s[0] is not None]}
+
+@app.get("/sessions/{session_id}")
+def get_session_history(session_id: str, db: Session = Depends(get_db)):
+    """Fetch the complete telemetry history for a specific session for UI playback."""
+    # Utilizing the index=True we set in database.py for lightning-fast queries,
+    # and sorting the results chronologically by timestamp
+    history = db.query(database.Telemetry).filter(
+        database.Telemetry.session_id == session_id
+    ).order_by(database.Telemetry.timestamp.asc()).all()
+    
+    # NEW SAFEGUARD
+    safe_data = []
+    for row in history:
+        safe_data.append({
+            "robot_id": row.robot_id,
+            "map_id": row.map_id,
+            "session_id": row.session_id,
+            "timestamp": row.timestamp.isoformat() if row.timestamp else None,
+            "x": row.pose_x,
+            "y": row.pose_y,
+            "yaw": row.yaw,
+            "linear_x": row.linear_x,
+            "angular_z": row.angular_z,
+            "battery": row.battery
+        })
+    
+    return {
+        "session_id": session_id,
+        "total_records": len(safe_data),
+        "data": safe_data
+    }
+
 # 4. WebSocket Routing Endpoints (The actual traffic hub)
 
 
@@ -159,8 +202,14 @@ async def frontend_endpoint(websocket: WebSocket):
     await manager.connect_frontend(websocket)
     try:
         while True:
-            # Receive commands from frontend (could be 'command' or 'goal')
+            # Receive commands or goals from the frontend
             data = await websocket.receive_json()
+            
+            # 🌟 NEW: Basic format validation to ensure incoming commands are structurally sound
+            if "type" not in data or "robot_id" not in data:
+                await websocket.send_json({"error": "Invalid format. Missing 'type' or 'robot_id'"})
+                continue # Skip routing this malformed message
+                
             robot_id = data.get("robot_id")
             
             # The manager checks the robot_id and routes it precisely!
@@ -168,6 +217,7 @@ async def frontend_endpoint(websocket: WebSocket):
                 await manager.send_to_robot(robot_id, data)
     except WebSocketDisconnect:
         manager.disconnect_frontend()
+
 
 # Endpoint B: Dedicated connection for all Robots
 @app.websocket("/ws/robot/{robot_id}")
