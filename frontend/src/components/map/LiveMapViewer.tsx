@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { telemetryService, type TelemetryData } from '../../services/websocket';
+import yaml from 'js-yaml';
 
 interface LiveMapViewerProps {
     robotId: string;
@@ -13,29 +14,52 @@ const LiveMapViewer: React.FC<LiveMapViewerProps> = ({ robotId, telemetry }) => 
     const [mapLoaded, setMapLoaded] = useState(false);
     const mapImageRef = useRef<HTMLImageElement | null>(null);
 
+    // Map Metadata state from YAML
+    const [mapMeta, setMapMeta] = useState<{ resolution: number; originX: number; originY: number } | null>(null);
+
     // Scale factors: these would typically come from a map.yaml metadata file
     // For now we assume a simple map scale: 1 pixel = 0.05 meters (resolution)
     // const _resolution = 0.05;
     // const _originX = -10.0; // map origin in meters
     // const _originY = -10.0;
 
-    // Using a placeholder blank/grid image for now.
-    // Replace with real S3 map URL when available.
-    // Map URL depends on telemetry; fallback to map_01.png
-    const mapUrl = telemetry?.map_id ? `http://159.203.4.11/maps/${telemetry.map_id}.png` : 'http://159.203.4.11/maps/map_01.png';
+    // Fetch map directly from DigitalOcean Spaces CDN
+    // Format: https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/{map_id}/{map_id}.png
+    const mapUrlPng = telemetry?.map_id 
+        ? `https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/${telemetry.map_id}/${telemetry.map_id}.png` 
+        : 'https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/map_01/map_01.png';
+
+    const mapUrlYaml = telemetry?.map_id 
+        ? `https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/${telemetry.map_id}/${telemetry.map_id}.yaml` 
+        : 'https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/map_01/map_01.yaml';
 
     useEffect(() => {
+        // Fetch YAML metadata
+        fetch(mapUrlYaml)
+            .then(res => res.text())
+            .then(text => {
+                const parsed = yaml.load(text) as any;
+                if (parsed && typeof parsed.resolution === 'number' && Array.isArray(parsed.origin)) {
+                    setMapMeta({
+                        resolution: parsed.resolution,
+                        originX: parsed.origin[0],
+                        originY: parsed.origin[1]
+                    });
+                }
+            })
+            .catch(err => console.warn(`[LiveMapViewer] Failed to load yaml from ${mapUrlYaml}`, err));
+
+        // Load PNG image
         const img = new Image();
-        img.src = mapUrl;
+        img.src = mapUrlPng;
         img.onload = () => {
             mapImageRef.current = img;
             setMapLoaded(true);
-            drawMap();
         };
         img.onerror = () => {
-            console.warn(`[LiveMapViewer] Failed to load map from ${mapUrl}.`);
+            console.warn(`[LiveMapViewer] Failed to load map from ${mapUrlPng}.`);
         };
-    }, [mapUrl]);
+    }, [mapUrlPng, mapUrlYaml]);
 
     useEffect(() => {
         if (mapLoaded) {
@@ -57,29 +81,41 @@ const LiveMapViewer: React.FC<LiveMapViewerProps> = ({ robotId, telemetry }) => 
 
         // Draw robot pose if available
         if (telemetry) {
-            drawRobot(ctx, telemetry.pose.x, telemetry.pose.y, telemetry.pose.theta, canvas.width, canvas.height);
+            drawRobot(ctx, telemetry.x, telemetry.y, telemetry.yaw, canvas.width, canvas.height);
         }
     };
 
     // Conversion from world meters to canvas pixels
     const worldToPixel = (x_m: number, y_m: number, canvasW: number, canvasH: number) => {
-        // This math is highly simplified and depends on the real map dimensions.
-        // Assuming 400x400 canvas represents a 20x20m area centered at 0,0 for the mock
-        const scaleX = canvasW / 20.0;
-        const scaleY = canvasH / 20.0;
+        if (!mapMeta || !mapImageRef.current) return { px: 0, py: 0 };
+        
+        // Calculate the scale between the original PNG and the currently rendered canvas size
+        const scaleX = canvasW / mapImageRef.current.width;
+        const scaleY = canvasH / mapImageRef.current.height;
 
-        const px = (x_m + 10) * scaleX;
-        // Invert Y because canvas Y goes down, world Y goes up
-        const py = canvasH - ((y_m + 10) * scaleY);
-        return { px, py };
+        // Formula: Pixel = (World - Origin) / Resolution
+        const originalPx = (x_m - mapMeta.originX) / mapMeta.resolution;
+        const originalPy = mapImageRef.current.height - ((y_m - mapMeta.originY) / mapMeta.resolution);
+
+        return { 
+            px: originalPx * scaleX, 
+            py: originalPy * scaleY 
+        };
     };
 
     const pixelToWorld = (px: number, py: number, canvasW: number, canvasH: number) => {
-        const scaleX = canvasW / 20.0;
-        const scaleY = canvasH / 20.0;
+        if (!mapMeta || !mapImageRef.current) return { x_m: 0, y_m: 0 };
 
-        const x_m = (px / scaleX) - 10;
-        const y_m = (canvasH - py) / scaleY - 10;
+        const scaleX = canvasW / mapImageRef.current.width;
+        const scaleY = canvasH / mapImageRef.current.height;
+
+        const originalPx = px / scaleX;
+        const originalPy = py / scaleY;
+
+        // Formula: World = (Pixel * Resolution) + Origin
+        const x_m = (originalPx * mapMeta.resolution) + mapMeta.originX;
+        const y_m = ((mapImageRef.current.height - originalPy) * mapMeta.resolution) + mapMeta.originY;
+        
         return { x_m, y_m };
     };
 
