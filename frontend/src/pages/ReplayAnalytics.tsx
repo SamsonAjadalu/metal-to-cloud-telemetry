@@ -6,7 +6,8 @@ import TrajectoryViewer from '../components/replay/TrajectoryViewer';
 const ReplayAnalytics: React.FC = () => {
     const [sessions, setSessions] = useState<Session[]>([]);
     const [selectedSession, setSelectedSession] = useState<string | null>(null);
-    const [selectedRobot, setSelectedRobot] = useState<string>('tb3_01');
+    const [selectedRobot, setSelectedRobot] = useState<string>('');
+    const [activeRobots, setActiveRobots] = useState<string[]>([]);
     const [replayData, setReplayData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -22,6 +23,17 @@ const ReplayAnalytics: React.FC = () => {
         setSelectedSession(sessionId);
         apiService.getSessionTelemetry(sessionId).then(data => {
             setReplayData(data);
+            
+            // Dynamically extract participating robots in this session
+            const uniqueRobots = Array.from(new Set(data.map((d: any) => d.robot_id).filter(Boolean))) as string[];
+            setActiveRobots(uniqueRobots.sort());
+            
+            if (uniqueRobots.length > 0) {
+                setSelectedRobot(uniqueRobots[0]);
+            } else {
+                setSelectedRobot('');
+            }
+            
             setLoading(false);
         });
     };
@@ -40,9 +52,10 @@ const ReplayAnalytics: React.FC = () => {
                         onChange={(e) => setSelectedRobot(e.target.value)}
                         style={{ padding: '0.5rem', fontSize: '1.1rem', borderRadius: '4px' }}
                     >
-                        <option value="tb3_01">tb3_01</option>
-                        <option value="tb3_02">tb3_02</option>
-                        <option value="scout_mini">scout_mini</option>
+                        {activeRobots.length === 0 && <option value="" disabled>No robots.</option>}
+                        {activeRobots.map(id => (
+                            <option key={id} value={id}>{id}</option>
+                        ))}
                     </select>
                 </div>
             </div>
@@ -83,7 +96,7 @@ const ReplayAnalytics: React.FC = () => {
                             <div style={{ marginBottom: '3rem' }}>
                                 <h4>Trajectory Replay</h4>
                                 <TrajectoryViewer
-                                    data={replayData.map(d => ({
+                                    data={replayData.filter(d => d.robot_id === selectedRobot).map(d => ({
                                         timestamp: new Date(d.timestamp).toLocaleTimeString(),
                                         x: d.x,
                                         y: d.y,
@@ -95,7 +108,7 @@ const ReplayAnalytics: React.FC = () => {
                             <div style={{ height: '300px', marginTop: '2rem' }}>
                                 <h4>Historical Battery Performance</h4>
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={replayData}>
+                                    <LineChart data={replayData.filter(d => d.robot_id === selectedRobot)}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="timestamp" tickFormatter={(time) => new Date(time).toLocaleTimeString()} />
                                         <YAxis domain={[0, 100]} />
