@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { type TelemetryData, telemetryService } from '../services/websocket';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import TeleopPad from '../components/control/TeleopPad';
@@ -8,16 +8,39 @@ const Dashboard: React.FC = () => {
     const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
     const [history, setHistory] = useState<TelemetryData[]>([]);
 
-    // V2 Options state
-    const [selectedRobot, setSelectedRobot] = useState<string>('tb3_01');
     const [isAutoMode, setIsAutoMode] = useState<boolean>(false);
+    
+    // Dynamic Robot ID Tracking
+    const [activeRobots, setActiveRobots] = useState<string[]>([]);
+    const [selectedRobot, setSelectedRobotState] = useState<string>('');
+    const selectedRobotRef = useRef<string>('');
+
+    const setSelectedRobot = (robotId: string) => {
+        setSelectedRobotState(robotId);
+        selectedRobotRef.current = robotId;
+        // Clear history when switching robots
+        setHistory([]);
+        setTelemetry(null);
+    };
 
     useEffect(() => {
         telemetryService.connect();
 
         telemetryService.onMessage((data) => {
-            // Ideally backend will emit `robot_id` in TelemetryData so we filter here
-            // e.g. if (data.robot_id !== selectedRobot) return;
+            if (data.robot_id) {
+                setActiveRobots(prev => {
+                    if (!prev.includes(data.robot_id!)) {
+                        if (selectedRobotRef.current === '') {
+                            setSelectedRobot(data.robot_id!);
+                        }
+                        return [...prev, data.robot_id!].sort();
+                    }
+                    return prev;
+                });
+            }
+
+            if (selectedRobotRef.current && data.robot_id !== selectedRobotRef.current) return;
+
             setTelemetry(data);
             setHistory(prev => {
                 const newHistory = [...prev, data];
@@ -29,7 +52,7 @@ const Dashboard: React.FC = () => {
         return () => {
             telemetryService.disconnect();
         };
-    }, [selectedRobot]);
+    }, []);
 
     const handleStop = () => {
         telemetryService.sendCommand('E_STOP', {});
@@ -56,9 +79,10 @@ const Dashboard: React.FC = () => {
                         onChange={(e) => setSelectedRobot(e.target.value)}
                         style={{ padding: '0.5rem', fontSize: '1.1rem', borderRadius: '4px' }}
                     >
-                        <option value="tb3_01">tb3_01</option>
-                        <option value="tb3_02">tb3_02</option>
-                        <option value="scout_mini">scout_mini</option>
+                        <option value="" disabled>Waiting for data...</option>
+                        {activeRobots.map(id => (
+                            <option key={id} value={id}>{id}</option>
+                        ))}
                     </select>
                 </div>
             </div>
