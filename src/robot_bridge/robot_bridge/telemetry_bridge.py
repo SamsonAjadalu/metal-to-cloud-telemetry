@@ -16,7 +16,7 @@ class TelemetryBridge(Node):
     def __init__(self):
         super().__init__('telemetry_bridge')
 
-        self.robot_id = os.getenv("ROBOT_ID", "tb3_01")
+        self.robot_id = os.getenv("ROBOT_ID", "tb3_001")
         self.map_id = os.getenv("MAP_ID", "map_01")
         self.odom_topic = os.getenv("ODOM_TOPIC", "/odom")
         self.cmd_vel_topic = os.getenv("CMD_VEL_TOPIC", "/cmd_vel")
@@ -25,10 +25,7 @@ class TelemetryBridge(Node):
             f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         )
 
-        self.backend_ws_url = os.getenv(
-            "BACKEND_WS_URL",
-            f"ws://localhost:8000/ws/robot/{self.robot_id}"
-        )
+        self.backend_ws_url = f"ws://159.203.4.11:8000/ws/robot/{self.robot_id}"
 
         self.get_logger().info(f"Robot ID: {self.robot_id}")
         self.get_logger().info(f"Map ID: {self.map_id}")
