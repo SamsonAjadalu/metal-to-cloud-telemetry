@@ -16,13 +16,12 @@ const TeleopPad: React.FC<TeleopPadProps> = ({ robotId, disabled }) => {
             return;
         }
 
-        const max_velocity = 0.5; // m/s
-        const max_angular = 1.0; // rad/s
+        // Stick reports ~[-1, 1]; scale to m/s and rad/s at full deflection.
+        const max_velocity = 0.22; // m/s (~TurtleBot3 Burger limit)
+        const max_angular = 1.5; // rad/s
 
-        // react-joystick-component gives x and y in cartesian plane based on joystick distance
-        // event.x and event.y are normalized between -1 to 1 based on the size/distance of stick
-        const x_scaled = event.y !== null ? (event.y / 50) * max_velocity : 0; // forward/backward
-        const z_scaled = event.x !== null ? -(event.x / 50) * max_angular : 0; // Negative X is left rotation (positive angular) in robotics
+        const x_scaled = event.y !== null ? event.y * max_velocity : 0;
+        const z_scaled = event.x !== null ? -event.x * max_angular : 0;
 
         telemetryService.sendTwistCommand(robotId, { linear_x_cmd: x_scaled, angular_z_cmd: z_scaled });
     };
