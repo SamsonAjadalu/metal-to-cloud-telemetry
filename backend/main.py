@@ -79,7 +79,7 @@ class ConnectionManager:
         # Forward the received data as-is to the frontend, if connected
         if self.frontend_ws:
             await self.frontend_ws.send_json(message)
-            print(f"📤 [Routed to Frontend] Message type: {message.get('type')}")
+            #print(f"📤 [Routed to Frontend] Message type: {message.get('type')}")
 
     async def send_to_robot(self, robot_id: str, message: dict):
         # Look up the robot in the dictionary and send the message
