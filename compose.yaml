@@ -20,7 +20,7 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - /mnt/volume_tor1_02/pg_data:/var/lib/postgresql/data
     networks:
       - fleet-network
     healthcheck:
