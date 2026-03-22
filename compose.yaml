@@ -6,6 +6,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:80"
+    deploy:
+      replicas: 2
     networks:
       - fleet-network
 
@@ -27,6 +29,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.role == database
 
   api:
     image: wofa/m2c-api:latest
@@ -34,14 +41,15 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
     networks:
       - fleet-network
+    deploy:
+      replicas: 1
 
   # bridge:
   #   image: wofa/m2c-bridge:latest
@@ -61,4 +69,4 @@ volumes:
 
 networks:
   fleet-network:
-    driver: bridge
+    driver: overlay
