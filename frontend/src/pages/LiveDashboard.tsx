@@ -3,6 +3,7 @@ import { type TelemetryData, telemetryService } from '../services/websocket';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import TeleopPad from '../components/control/TeleopPad';
 import LiveMapViewer from '../components/map/LiveMapViewer';
+import { apiService, type RobotInfo } from '../services/api';
 
 const Dashboard: React.FC = () => {
     const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
@@ -14,6 +15,7 @@ const Dashboard: React.FC = () => {
     const [activeRobots, setActiveRobots] = useState<string[]>([]);
     const [selectedRobot, setSelectedRobotState] = useState<string>('');
     const selectedRobotRef = useRef<string>('');
+    const [fleet, setFleet] = useState<RobotInfo[]>([]);
 
     const setSelectedRobot = (robotId: string) => {
         setSelectedRobotState(robotId);
@@ -54,6 +56,14 @@ const Dashboard: React.FC = () => {
         };
     }, []);
 
+    // Poll fleet stats every 5 seconds (data from PostgreSQL — persists across restarts)
+    useEffect(() => {
+        const fetchFleet = () => apiService.getFleet().then(setFleet).catch(() => {});
+        fetchFleet();
+        const interval = setInterval(fetchFleet, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
     const handleStop = () => {
         telemetryService.sendCommand('E_STOP', {});
         telemetryService.sendTwistCommand(selectedRobot, { linear_x_cmd: 0, angular_z_cmd: 0 });
@@ -85,6 +95,47 @@ const Dashboard: React.FC = () => {
                     </select>
                 </div>
             </div>
+
+            {/* Fleet Overview Table — data persists in PostgreSQL across container restarts */}
+            {fleet.length > 0 && (
+                <div style={{ marginTop: '1rem', padding: '1.5rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
+                    <h3 style={{ marginTop: 0, marginBottom: '1rem', borderBottom: '2px solid #0056b3', paddingBottom: '0.5rem' }}>Fleet Overview</h3>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
+                        <thead>
+                            <tr style={{ background: '#f8f9fa', textAlign: 'left' }}>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Robot ID</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Status</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Battery</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Position (X, Y)</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Distance Traveled</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Last Seen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {fleet.map(r => (
+                                <tr key={r.robot_id} style={{ borderBottom: '1px solid #dee2e6', cursor: 'pointer', background: r.robot_id === selectedRobot ? '#e8f0fe' : 'transparent' }}
+                                    onClick={() => setSelectedRobot(r.robot_id)}>
+                                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>{r.robot_id}</td>
+                                    <td style={{ padding: '0.75rem' }}>
+                                        <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: r.status === 'ONLINE' ? '#198754' : '#dc3545', marginRight: '6px' }}></span>
+                                        {r.status}
+                                    </td>
+                                    <td style={{ padding: '0.75rem' }}>{r.battery.toFixed(1)}%</td>
+                                    <td style={{ padding: '0.75rem' }}>({r.x}, {r.y})</td>
+                                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>{r.total_distance_m.toFixed(1)} m</td>
+                                    <td style={{ padding: '0.75rem', color: '#666' }}>
+                                        {r.last_seen_ago_s !== null ? (
+                                            r.last_seen_ago_s < 60 ? `${Math.round(r.last_seen_ago_s)}s ago` :
+                                            r.last_seen_ago_s < 3600 ? `${Math.round(r.last_seen_ago_s / 60)}m ago` :
+                                            `${Math.round(r.last_seen_ago_s / 3600)}h ago`
+                                        ) : 'Never'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
 
             {!telemetry ? (
                 <p>Waiting for WebSocket connection...</p>
