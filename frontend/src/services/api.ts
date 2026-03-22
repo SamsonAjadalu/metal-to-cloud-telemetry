@@ -8,9 +8,19 @@ export interface Session {
     startTime: string;
 }
 
+export interface RobotInfo {
+    robot_id: string;
+    status: string;
+    battery: number;
+    x: number;
+    y: number;
+    total_distance_m: number;
+    last_seen: string | null;
+    last_seen_ago_s: number | null;
+}
+
 /**
- * Mock REST API Service
- * Person B (Backend) will replace this with real FastAPI endpoints.
+ * REST API Service for backend endpoints.
  */
 class ApiService {
     async getSessions(): Promise<Session[]> {
@@ -68,6 +78,18 @@ class ApiService {
                 resolve(data);
             }, 500);
         });
+    }
+
+    async getFleet(): Promise<RobotInfo[]> {
+        try {
+            const res = await fetch('http://localhost:8000/api/fleet');
+            if (res.ok) {
+                return await res.json();
+            }
+        } catch (err) {
+            console.warn('[ApiService] Backend API not available for getFleet.');
+        }
+        return [];
     }
 }
 

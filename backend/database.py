@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, func
 from sqlalchemy.orm import declarative_base, sessionmaker
 import datetime
 import os
@@ -43,3 +43,16 @@ class Telemetry(Base):
     linear_x = Column(Float)
     angular_z = Column(Float)
     battery = Column(Float)
+
+
+# Fleet tracking — persists across container restarts
+class Robot(Base):
+    __tablename__ = "robots"
+
+    robot_id = Column(String, primary_key=True)           # e.g. "tb3_001"
+    status = Column(String, default="OFFLINE")             # ONLINE / OFFLINE
+    battery = Column(Float, default=0.0)
+    last_x = Column(Float, default=0.0)                   # last known position
+    last_y = Column(Float, default=0.0)
+    total_distance_m = Column(Float, default=0.0)          # cumulative distance in meters
+    last_seen = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
