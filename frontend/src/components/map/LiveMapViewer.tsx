@@ -23,15 +23,11 @@ const LiveMapViewer: React.FC<LiveMapViewerProps> = ({ robotId, telemetry }) => 
     // const _originX = -10.0; // map origin in meters
     // const _originY = -10.0;
 
-    // Fetch map directly from DigitalOcean Spaces CDN
-    // Format: https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/{map_id}/{map_id}.png
-    const mapUrlPng = telemetry?.map_id 
-        ? `https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/${telemetry.map_id}/${telemetry.map_id}.png` 
-        : 'https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/map_01/map_01.png';
-
-    const mapUrlYaml = telemetry?.map_id 
-        ? `https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/${telemetry.map_id}/${telemetry.map_id}.yaml` 
-        : 'https://metal-to-cloud-telemetry-space.tor1.digitaloceanspaces.com/maps/map_01/map_01.yaml';
+    // Fetch map via Nginx reverse proxy (avoids CORS issues)
+    // Nginx proxies /maps/* → DigitalOcean Spaces bucket
+    const mapId = telemetry?.map_id || 'map_01';
+    const mapUrlPng = `/maps/${mapId}/${mapId}.png`;
+    const mapUrlYaml = `/maps/${mapId}/${mapId}.yaml`;
 
     useEffect(() => {
         // Fetch YAML metadata
