@@ -19,10 +19,63 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import EqualsSubstitution, LaunchConfiguration
 
 
+def _read_env_key(path: str, key: str) -> str | None:
+    if not path or not os.path.exists(path):
+        return None
+    try:
+        with open(path, 'r', encoding='utf-8') as env_file:
+            for raw_line in env_file:
+                line = raw_line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if line.startswith('export '):
+                    line = line[len('export '):].strip()
+                if '=' not in line:
+                    continue
+                lhs, rhs = line.split('=', 1)
+                if lhs.strip() != key:
+                    continue
+                return rhs.strip().strip('"').strip("'")
+    except OSError:
+        return None
+    return None
+
+
+def _default_backend_base_url() -> str:
+    env_value = os.getenv('BACKEND_BASE_URL')
+    if env_value:
+        return env_value
+
+    ws_root = os.getenv('WS_ROOT', '').strip()
+    candidate_files: list[str] = []
+    if ws_root:
+        candidate_files.extend(
+            [
+                os.path.join(ws_root, '.env.telemetry'),
+            ]
+        )
+    candidate_files.extend(
+        [
+            os.path.join(os.getcwd(), '.env.telemetry'),
+        ]
+    )
+
+    seen: set[str] = set()
+    for candidate in candidate_files:
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        value = _read_env_key(candidate, 'BACKEND_BASE_URL')
+        if value:
+            return value
+    return 'ws://159.203.4.11:8000'
+
+
 def generate_launch_description():
     pkg_gazebo_ros = get_package_share_directory('gazebo_ros')
     pkg_tb3 = get_package_share_directory('turtlebot3_gazebo')
     pkg_rb = get_package_share_directory('robot_bridge')
+    backend_default = _default_backend_base_url()
 
     sim_fleet_state = Path(tempfile.gettempdir()) / 'robot_bridge_stack_sim_fleet.json'
     sim_fleet_state.write_text(
@@ -95,6 +148,7 @@ def generate_launch_description():
             SetEnvironmentVariable('TURTLEBOT3_MODEL', 'burger'),
             SetEnvironmentVariable('USE_SIM_TIME', 'true'),
             SetEnvironmentVariable('FASTDDS_BUILTIN_TRANSPORTS', 'UDPv4'),
+            SetEnvironmentVariable('BACKEND_BASE_URL', backend_default),
             DeclareLaunchArgument(
                 'count',
                 default_value='3',
@@ -102,7 +156,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 'backend_url',
-                default_value='ws://159.203.4.11:8000',
+                default_value=backend_default,
                 description='Telemetry backend base URL (no /ws path).',
             ),
             DeclareLaunchArgument(
