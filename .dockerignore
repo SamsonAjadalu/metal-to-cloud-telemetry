@@ -1,0 +1,18 @@
+# Build artifacts
+build/
+install/
+log/
+
+# VCS / IDE
+.git/
+.gitignore
+.cursor/
+
+# Not needed inside ROS sim image
+frontend/
+**/node_modules/
+**/__pycache__/
+*.pyc
+
+# Local state (stack uses /tmp fleet json anyway)
+fleet_state.json

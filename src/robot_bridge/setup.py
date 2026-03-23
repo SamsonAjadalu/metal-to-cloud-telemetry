@@ -28,8 +28,8 @@ setup(
         'console_scripts': [
             'telemetry_bridge = robot_bridge.telemetry_bridge:main',
             'fleet_orchestrator = robot_bridge.fleet_orchestrator:main',
-
-
+            'tf_global_relay = robot_bridge.tf_global_relay:main',
+            'amcl_seed_pose = robot_bridge.amcl_seed_pose:main',
         ],
     },
 )
