@@ -20,7 +20,9 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - /mnt/volume_tor1_02/pg_data:/var/lib/postgresql/data
+      - type: bind
+        source: /mnt/volume_tor1_02/pg_data
+        target: /var/lib/postgresql/data
     networks:
       - fleet-network
     healthcheck:
@@ -33,7 +35,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.labels.role == database
+          - node.hostname == m2c-droplet2
 
   api:
     image: wofa/m2c-api:latest

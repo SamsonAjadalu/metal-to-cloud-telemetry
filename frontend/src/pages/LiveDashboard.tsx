@@ -3,6 +3,7 @@ import { type TelemetryData, telemetryService } from '../services/websocket';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import TeleopPad from '../components/control/TeleopPad';
 import LiveMapViewer from '../components/map/LiveMapViewer';
+import { apiService, type RobotInfo } from '../services/api';
 
 const Dashboard: React.FC = () => {
     const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
@@ -14,11 +15,12 @@ const Dashboard: React.FC = () => {
     const [activeRobots, setActiveRobots] = useState<string[]>([]);
     const [selectedRobot, setSelectedRobotState] = useState<string>('');
     const selectedRobotRef = useRef<string>('');
+    const [fleet, setFleet] = useState<RobotInfo[]>([]);
 
     const setSelectedRobot = (robotId: string) => {
         setSelectedRobotState(robotId);
         selectedRobotRef.current = robotId;
-        // Clear history when switching robots
+        // Clear history when switching robots — fresh start for the new robot
         setHistory([]);
         setTelemetry(null);
     };
@@ -54,11 +56,14 @@ const Dashboard: React.FC = () => {
         };
     }, []);
 
-    const handleStop = () => {
-        telemetryService.sendCommand('E_STOP', {});
-        // Also stop velocities if teleop is active
-        telemetryService.sendTwistCommand(selectedRobot, { linear_x_cmd: 0, angular_z_cmd: 0 });
-    };
+    // Poll fleet stats every 5 seconds (data from PostgreSQL — persists across restarts)
+    useEffect(() => {
+        const fetchFleet = () => apiService.getFleet().then(setFleet).catch(() => {});
+        fetchFleet();
+        const interval = setInterval(fetchFleet, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
 
     const handleModeSwitch = () => {
         setIsAutoMode(prev => {
@@ -87,10 +92,52 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
 
+            {/* Fleet Overview Table — data persists in PostgreSQL across container restarts */}
+            {fleet.length > 0 && (
+                <div style={{ marginTop: '1rem', padding: '1.5rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
+                    <h3 style={{ marginTop: 0, marginBottom: '1rem', borderBottom: '2px solid #0056b3', paddingBottom: '0.5rem' }}>Fleet Overview</h3>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
+                        <thead>
+                            <tr style={{ background: '#f8f9fa', textAlign: 'left' }}>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Robot ID</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Status</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Battery</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Position (X, Y)</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Distance Traveled</th>
+                                <th style={{ padding: '0.75rem', borderBottom: '2px solid #dee2e6' }}>Last Seen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {fleet.map(r => (
+                                <tr key={r.robot_id} style={{ borderBottom: '1px solid #dee2e6', cursor: 'pointer', background: r.robot_id === selectedRobot ? '#e8f0fe' : 'transparent' }}
+                                    onClick={() => setSelectedRobot(r.robot_id)}>
+                                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>{r.robot_id}</td>
+                                    <td style={{ padding: '0.75rem' }}>
+                                        <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: r.status === 'ONLINE' ? '#198754' : '#dc3545', marginRight: '6px' }}></span>
+                                        {r.status}
+                                    </td>
+                                    <td style={{ padding: '0.75rem' }}>{r.battery.toFixed(1)}%</td>
+                                    <td style={{ padding: '0.75rem' }}>({r.x}, {r.y})</td>
+                                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>{r.total_distance_m.toFixed(1)} m</td>
+                                    <td style={{ padding: '0.75rem', color: '#666' }}>
+                                        {r.last_seen_ago_s !== null ? (
+                                            r.last_seen_ago_s < 60 ? `${Math.round(r.last_seen_ago_s)}s ago` :
+                                            r.last_seen_ago_s < 3600 ? `${Math.round(r.last_seen_ago_s / 60)}m ago` :
+                                            `${Math.round(r.last_seen_ago_s / 3600)}h ago`
+                                        ) : 'Never'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
             {!telemetry ? (
                 <p>Waiting for WebSocket connection...</p>
             ) : (
                 <>
+                    {/* Top row: Telemetry cards */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginTop: '1rem' }}>
                         <div className="card" style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                             <h3 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '0.5rem', marginTop: 0 }}>Robot Pose</h3>
@@ -112,7 +159,6 @@ const Dashboard: React.FC = () => {
                         <div className="card" style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                             <h3 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '0.5rem', marginTop: 0 }}>Command & Control</h3>
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button onClick={handleStop} style={{ background: '#dc3545', color: 'white', padding: '0.75rem 1.5rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', flex: 1 }}>E-STOP</button>
                                 <button onClick={handleModeSwitch} style={{ background: isAutoMode ? '#198754' : '#0d6efd', color: 'white', padding: '0.75rem 1.5rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', flex: 1 }}>
                                     {isAutoMode ? "Auto Mode" : "Manual Mode"}
                                 </button>
@@ -120,17 +166,39 @@ const Dashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Navigation Area */}
-                    <div style={{ marginTop: '3rem', padding: '2rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-                        <h2 style={{ textAlign: 'center', marginBottom: '2rem', color: '#444' }}>Navigation Interface</h2>
-                        {isAutoMode ? (
-                            <LiveMapViewer robotId={selectedRobot} telemetry={telemetry} />
-                        ) : (
-                            <TeleopPad robotId={selectedRobot} disabled={isAutoMode} />
-                        )}
+                    {/* Main content: Map always visible + Controls side by side */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem' }}>
+                        {/* Left: Live Map — always visible, updates live with robot position */}
+                        <div style={{ padding: '1.5rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
+                            <h2 style={{ textAlign: 'center', marginBottom: '1rem', marginTop: 0, color: '#444', fontSize: '1.3rem' }}>Live Map</h2>
+                            <LiveMapViewer 
+                                robotId={selectedRobot} 
+                                telemetry={telemetry}
+                                goalEnabled={isAutoMode}
+                            />
+                        </div>
+
+                        {/* Right: Controls — switches between joystick and goal info */}
+                        <div style={{ padding: '1.5rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                            <h2 style={{ textAlign: 'center', marginBottom: '1rem', marginTop: 0, color: '#444', fontSize: '1.3rem' }}>
+                                {isAutoMode ? 'Autonomous Navigation' : 'Manual Control'}
+                            </h2>
+                            {isAutoMode ? (
+                                <div style={{ textAlign: 'center', color: '#666' }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎯</div>
+                                    <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>Click on the map to send a Nav2 Goal</p>
+                                    <p style={{ fontSize: '0.9rem', marginTop: '0.5rem', color: '#999' }}>
+                                        The robot will autonomously navigate to the clicked position
+                                    </p>
+                                </div>
+                            ) : (
+                                <TeleopPad robotId={selectedRobot} disabled={isAutoMode} />
+                            )}
+                        </div>
                     </div>
 
-                    <div style={{ marginTop: '3rem', height: '300px' }}>
+                    {/* Battery chart */}
+                    <div style={{ marginTop: '2rem', height: '250px' }}>
                         <h3>Live Battery Drain</h3>
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={history}>

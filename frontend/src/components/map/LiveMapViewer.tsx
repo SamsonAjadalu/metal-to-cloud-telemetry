@@ -5,10 +5,12 @@ import yaml from 'js-yaml';
 interface LiveMapViewerProps {
     robotId: string;
     telemetry: TelemetryData | null;
+    goalEnabled?: boolean;
 }
 
-const LiveMapViewer: React.FC<LiveMapViewerProps> = ({ robotId, telemetry }) => {
+const LiveMapViewer: React.FC<LiveMapViewerProps> = ({ robotId, telemetry, goalEnabled = false }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [goalToast, setGoalToast] = useState<string | null>(null);
 
     // Map configuration (simulating static map from DevOps/S3)
     const [mapLoaded, setMapLoaded] = useState(false);
@@ -136,6 +138,8 @@ const LiveMapViewer: React.FC<LiveMapViewerProps> = ({ robotId, telemetry }) => 
     };
 
     const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!goalEnabled) return; // Only allow goal clicks in Auto Mode
+
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -149,26 +153,38 @@ const LiveMapViewer: React.FC<LiveMapViewerProps> = ({ robotId, telemetry }) => 
         telemetryService.sendGoalCommand(robotId, {
             x: parseFloat(x_m.toFixed(2)),
             y: parseFloat(y_m.toFixed(2)),
-            yaw: 0.0 // Defaulting to 0 heading for goal, Nav2 can calculate path angle
+            yaw: 0.0
         });
 
-        alert(`Nav2 Goal Sent: X: ${x_m.toFixed(2)}, Y: ${y_m.toFixed(2)}`);
+        // Non-blocking toast instead of alert()
+        setGoalToast(`Goal sent → X: ${x_m.toFixed(2)}, Y: ${y_m.toFixed(2)}`);
+        setTimeout(() => setGoalToast(null), 3000);
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <h4 style={{ marginBottom: '1rem', color: '#333' }}>Autonomous Goal Navigation</h4>
-            <div style={{ position: 'relative', border: '2px solid #ddd', borderRadius: '8px', overflow: 'hidden', cursor: 'crosshair', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                {!mapLoaded && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>Loading Map...</div>}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+            <div style={{ position: 'relative', border: '2px solid #ddd', borderRadius: '8px', overflow: 'hidden', cursor: goalEnabled ? 'crosshair' : 'default', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', width: '100%', maxWidth: '500px' }}>
+                {!mapLoaded && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1 }}>Loading Map...</div>}
                 <canvas
                     ref={canvasRef}
                     width={400}
                     height={400}
                     onClick={handleCanvasClick}
-                    style={{ display: 'block' }}
+                    style={{ display: 'block', width: '100%', height: 'auto' }}
                 />
+                {/* Goal sent toast notification */}
+                {goalToast && (
+                    <div style={{
+                        position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)',
+                        background: 'rgba(25, 135, 84, 0.9)', color: 'white', padding: '8px 16px',
+                        borderRadius: '6px', fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)', zIndex: 2
+                    }}>
+                        ✓ {goalToast}
+                    </div>
+                )}
             </div>
-            <p style={{ marginTop: '1rem', color: '#666', fontSize: '0.9rem' }}>Click on the map to set a Nav2 Goal.</p>
+            {goalEnabled && <p style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.85rem' }}>Click on the map to set a Nav2 Goal.</p>}
         </div>
     );
 };
