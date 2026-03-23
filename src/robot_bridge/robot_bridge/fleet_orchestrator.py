@@ -28,7 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--state-file", default="fleet_state.json")
     parser.add_argument(
         "--backend-url",
-        default="ws://159.203.4.11:8000",
+        default=os.getenv("BACKEND_BASE_URL", "ws://159.203.4.11:8000"),
         help="Telemetry WS base URL (no path).",
     )
     parser.add_argument("--dry-run", type=parse_bool, default=False)

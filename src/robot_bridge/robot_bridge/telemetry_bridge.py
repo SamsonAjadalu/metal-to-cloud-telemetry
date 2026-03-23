@@ -44,7 +44,10 @@ class TelemetryBridge(Node):
             f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         )
 
-        _default_backend_ws = f"ws://159.203.4.11:8000/ws/robot/{self.robot_id}"
+        backend_base_url = os.getenv("BACKEND_BASE_URL", "ws://159.203.4.11:8000")
+        _default_backend_ws = (
+            f"{backend_base_url.rstrip('/')}/ws/robot/{self.robot_id}"
+        )
         self.backend_ws_url = os.getenv("BACKEND_WS_URL", _default_backend_ws)
 
         self.get_logger().info(f"Robot ID: {self.robot_id}")

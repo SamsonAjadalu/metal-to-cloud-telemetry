@@ -275,6 +275,18 @@ source "$WS_ROOT/install/setup.bash"
 ros2 launch robot_bridge stack_sim_nav2.launch.py
 ```
 
+Backend URL defaults are read automatically from `.env.telemetry` (if present in `WS_ROOT` or the current directory). Keep this file in the repo root, for example:
+
+```bash
+BACKEND_BASE_URL=ws://159.203.4.11:8000
+```
+
+You can still override per-run with a launch arg, for example:
+
+```bash
+ros2 launch robot_bridge stack_sim_nav2.launch.py backend_url:=ws://159.203.4.11:8000
+```
+
 On a **headless VPS** (no display), add launch args, for example: `headless:=true use_rviz:=false`.
 
 ### Robot count
@@ -317,7 +329,7 @@ ros2 run robot_bridge fleet_orchestrator \
   --count 5 \
   --headless true \
   --state-file /tmp/fleet_state.json \
-  --backend-url ws://192.168.1.10:8000 \
+  --backend-url ws://159.203.4.11:8000 \
   --robots-per-world 10 \
   --dry-run false
 ```
