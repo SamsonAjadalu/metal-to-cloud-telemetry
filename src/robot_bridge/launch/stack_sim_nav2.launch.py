@@ -97,6 +97,8 @@ def generate_launch_description():
             '--skip-world-launch',
             '--state-file',
             str(sim_fleet_state),
+            '--backend-url',
+            LaunchConfiguration('backend_url'),
         ],
         output='screen',
     )
@@ -121,6 +123,14 @@ def generate_launch_description():
                 'count',
                 default_value='3',
                 description='Robots to spawn (must match nav2_multi_robot ROBOT_NAMESPACES).',
+            ),
+            DeclareLaunchArgument(
+                'backend_url',
+                default_value='ws://159.203.4.11:8000',
+                description=(
+                    'WebSocket base URL for telemetry_bridge (no path). '
+                    'Fleet sets BACKEND_WS_URL per robot. Use ws://localhost:8000 if the API runs locally.'
+                ),
             ),
             DeclareLaunchArgument(
                 'headless',
