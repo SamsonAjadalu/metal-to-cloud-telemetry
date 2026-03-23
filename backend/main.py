@@ -1,14 +1,25 @@
 from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Dict
 import database
 import asyncio
+import math
+import datetime
 
 # Create database tables (based on the latest database.py schema)
 database.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Metal-to-Cloud API")
+
+# CORS: allow the frontend (different origin in local dev) to call REST endpoints
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # 1. Data Payload Models (Pydantic) 
@@ -127,11 +138,34 @@ async def startup_event():
     asyncio.create_task(batch_save_to_db())
     print("🚀 Background batch writer started!")
 
-# 3. REST APIs (For local testing and frontend replay)
+# 3. REST APIs (For local testing, frontend replay, and fleet overview)
 
 @app.get("/status")
 def check_status():
     return {"message": "Backend is running and routing traffic!"}
+
+
+@app.get("/api/fleet")
+def get_fleet(db: Session = Depends(get_db)):
+    """Return all known robots with their persistent stats (survives container restarts)."""
+    robots = db.query(database.Robot).order_by(database.Robot.robot_id).all()
+    now = datetime.datetime.utcnow()
+    fleet = []
+    for r in robots:
+        last_seen_ago = (now - r.last_seen).total_seconds() if r.last_seen else None
+        # Consider robot offline if not seen for 15+ seconds
+        effective_status = "ONLINE" if last_seen_ago is not None and last_seen_ago < 15 else "OFFLINE"
+        fleet.append({
+            "robot_id": r.robot_id,
+            "status": effective_status,
+            "battery": round(r.battery, 1) if r.battery else 0.0,
+            "x": round(r.last_x, 2) if r.last_x else 0.0,
+            "y": round(r.last_y, 2) if r.last_y else 0.0,
+            "total_distance_m": round(r.total_distance_m, 2) if r.total_distance_m else 0.0,
+            "last_seen": r.last_seen.isoformat() if r.last_seen else None,
+            "last_seen_ago_s": round(last_seen_ago, 1) if last_seen_ago is not None else None,
+        })
+    return fleet
 
 @app.post("/telemetry/")
 def save_telemetry(data: TelemetryPayload, db: Session = Depends(get_db)):
@@ -235,7 +269,7 @@ async def robot_endpoint(websocket: WebSocket, robot_id: str):
             # 2. Act as the message router: instantly forward the data to the frontend dashboard
             await manager.send_to_frontend(data)
             
-            # 3. NEW High-Concurrency Logic: Format the data for the database and append it to the buffer
+            # 3. High-Concurrency Logic: Format the data for the database and append it to the buffer
             db_item = {
                 "robot_id": robot_id,
                 "map_id": data.get("map_id"),
@@ -246,9 +280,54 @@ async def robot_endpoint(websocket: WebSocket, robot_id: str):
                 "linear_x": data.get("linear_x"),
                 "angular_z": data.get("angular_z"),
                 "battery": data.get("battery")
-                # We don't need to pass timestamp; the database will automatically generate the current UTC time
             }
-            telemetry_buffer.append(db_item) # Instant operation, zero blocking!
+            telemetry_buffer.append(db_item)
+
+            # 4. Fleet Tracking: Upsert robot row and calculate incremental distance
+            x_new = data.get("x", 0.0)
+            y_new = data.get("y", 0.0)
+            try:
+                db = database.SessionLocal()
+                robot = db.query(database.Robot).filter(database.Robot.robot_id == robot_id).first()
+                if robot:
+                    dx = x_new - (robot.last_x or 0.0)
+                    dy = y_new - (robot.last_y or 0.0)
+                    dist = math.sqrt(dx * dx + dy * dy)
+                    # Only add distance if movement is reasonable (< 5m per tick = not a teleport)
+                    if dist < 5.0:
+                        robot.total_distance_m = (robot.total_distance_m or 0.0) + dist
+                    robot.last_x = x_new
+                    robot.last_y = y_new
+                    robot.battery = data.get("battery", 0.0)
+                    robot.status = "ONLINE"
+                    robot.last_seen = datetime.datetime.utcnow()
+                else:
+                    robot = database.Robot(
+                        robot_id=robot_id,
+                        status="ONLINE",
+                        battery=data.get("battery", 0.0),
+                        last_x=x_new,
+                        last_y=y_new,
+                        total_distance_m=0.0,
+                        last_seen=datetime.datetime.utcnow()
+                    )
+                    db.add(robot)
+                db.commit()
+            except Exception as e:
+                print(f"⚠️ Fleet tracking error: {e}")
+            finally:
+                db.close()
             
     except WebSocketDisconnect:
         manager.disconnect_robot(robot_id)
+        # Mark robot as OFFLINE in the database
+        try:
+            db = database.SessionLocal()
+            robot = db.query(database.Robot).filter(database.Robot.robot_id == robot_id).first()
+            if robot:
+                robot.status = "OFFLINE"
+                db.commit()
+        except Exception:
+            pass
+        finally:
+            db.close()
