@@ -64,10 +64,6 @@ const Dashboard: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const handleStop = () => {
-        telemetryService.sendCommand('E_STOP', {});
-        telemetryService.sendTwistCommand(selectedRobot, { linear_x_cmd: 0, angular_z_cmd: 0 });
-    };
 
     const handleModeSwitch = () => {
         setIsAutoMode(prev => {
@@ -163,7 +159,6 @@ const Dashboard: React.FC = () => {
                         <div className="card" style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                             <h3 style={{ borderBottom: '2px solid #0056b3', paddingBottom: '0.5rem', marginTop: 0 }}>Command & Control</h3>
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button onClick={handleStop} style={{ background: '#dc3545', color: 'white', padding: '0.75rem 1.5rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', flex: 1 }}>E-STOP</button>
                                 <button onClick={handleModeSwitch} style={{ background: isAutoMode ? '#198754' : '#0d6efd', color: 'white', padding: '0.75rem 1.5rem', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem', flex: 1 }}>
                                     {isAutoMode ? "Auto Mode" : "Manual Mode"}
                                 </button>
