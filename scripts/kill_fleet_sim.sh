@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop fleet sim, Nav2, Gazebo, and telemetry bridges. Run this BEFORE a fresh build/launch.
+# Tear down stack_sim / Gazebo / Nav2 / bridges before a clean restart.
 set -euo pipefail
 
 pkill -f "ros2 launch robot_bridge stack_sim_nav2" 2>/dev/null || true

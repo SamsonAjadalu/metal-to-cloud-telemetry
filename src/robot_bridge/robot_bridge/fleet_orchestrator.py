@@ -29,16 +29,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--backend-url",
         default="ws://159.203.4.11:8000",
-        help="WebSocket base URL for telemetry (no path). Override with ws://127.0.0.1:8000 for a local API.",
+        help="Telemetry WS base URL (no path).",
     )
     parser.add_argument("--dry-run", type=parse_bool, default=False)
     parser.add_argument(
         "--skip-world-launch",
         action="store_true",
-        help=(
-            "Do not run turtlebot3_world (avoids a second gzserver). "
-            "Use when Gazebo is already up (e.g. stack_sim_nav2.launch.py)."
-        ),
+        help="Skip starting Gazebo; use when gzserver is already running.",
     )
     return parser.parse_args()
 
@@ -122,10 +119,7 @@ def wait_for_service(service_name: str, timeout_sec: int = 20) -> bool:
 
 
 def write_namespaced_tb3_sdf(namespace: str, turtlebot3_model: str, dest: Path) -> None:
-    """
-    Match turtlebot3_gazebo/launch/multi_robot.launch.py: unique TF frame ids per robot.
-    Required so Nav2 under /{namespace}/tf sees {namespace}/odom instead of missing odom.
-    """
+    """Patch TurtleBot3 SDF so each robot uses namespaced TF frames (cf. multi_robot launch)."""
     if get_package_share_directory is None:
         raise RuntimeError(
             "ament_index_python is required to locate turtlebot3_gazebo; "
@@ -163,10 +157,7 @@ def fleet_namespaced_sdf_path(logs_dir: Path, robot_id: str) -> Path:
 def ensure_fleet_tb3_sdf(
     logs_dir: Path, robot_id: str, namespace: str, *, dry_run: bool
 ) -> str | None:
-    """
-    If SPAWN_ROBOT_CMD_TEMPLATE is unset, write a TurtleBot3 SDF with TF frames
-    prefixed by namespace (matches turtlebot3_gazebo multi_robot.launch.py).
-    """
+    """Write namespaced SDF unless SPAWN_ROBOT_CMD_TEMPLATE is set."""
     if os.getenv("SPAWN_ROBOT_CMD_TEMPLATE"):
         return None
     sdf_p = fleet_namespaced_sdf_path(logs_dir, robot_id)
@@ -215,8 +206,7 @@ def spawn_robot_command(
             f"turtlebot3_{turtlebot3_model}/model.sdf"
         )
 
-    # Match turtlebot3_gazebo multi_spawn_turtlebot3.launch.py: pass namespace without a
-    # leading slash. A leading '/' can confuse plugin/TF naming vs namespaced Nav2.
+    # Namespace without a leading slash (spawn_entity / plugins).
     return (
         "ros2 run gazebo_ros spawn_entity.py "
         f"-entity {robot_id} "

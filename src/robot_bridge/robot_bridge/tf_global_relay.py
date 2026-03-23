@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""
-Republish global /tf and /tf_static into this node's namespace (e.g. /tb3_001/tf).
-
-Gazebo publishes on absolute /tf. Nav2 bringup remaps /tf -> tf so listeners use /{ns}/tf.
-tf2_ros.TransformBroadcaster hardcodes publisher topic "/tf" (ignores namespace), so we
-publish to relative topics "tf" and "tf_static" explicitly.
-"""
+"""Relay /tf and /tf_static into this node's namespace for namespaced Nav2."""
 
 import rclpy
 from rclpy.node import Node
@@ -17,9 +11,6 @@ def main(args=None):
     rclpy.init(args=args)
     node = Node('tf_global_relay')
 
-    # Deep queue: multi-robot Gazebo can burst many transforms per /tf message; dropping
-    # here leaves namespaced Nav2 (remapped /tf -> tf) without e.g. tb3_XXX/odom.
-    # Explicit reliable + volatile matches tf2_ros dynamic /tf usage in practice.
     sub_qos = QoSProfile(
         history=HistoryPolicy.KEEP_LAST,
         depth=1000,
@@ -32,7 +23,6 @@ def main(args=None):
         reliability=ReliabilityPolicy.RELIABLE,
         durability=DurabilityPolicy.TRANSIENT_LOCAL,
     )
-    # Relative names → /{node_ns}/tf so Nav2's remapped listeners receive Gazebo TF.
     pub_tf = node.create_publisher(TFMessage, 'tf', sub_qos)
     pub_tf_static = node.create_publisher(TFMessage, 'tf_static', static_qos)
 

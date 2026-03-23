@@ -1,4 +1,4 @@
-"""Publish /{ns}/initialpose once per robot so AMCL can latch map→odom (fixes missing `map` TF)."""
+"""Publish initialpose per namespace for AMCL (sim)."""
 
 from __future__ import annotations
 
@@ -31,8 +31,7 @@ def main() -> None:
         parameter_overrides=[Parameter('use_sim_time', value=True)],
     )
 
-    # Match AMCL's initialpose subscription (SystemDefaultsQoS = volatile). TRANSIENT_LOCAL
-    # here drops on later robots when matched against volatile subs.
+    # Volatile QoS to match AMCL's initialpose sub.
     qos = QoSProfile(
         depth=10,
         reliability=ReliabilityPolicy.RELIABLE,
@@ -50,12 +49,10 @@ def main() -> None:
             )
         )
 
-    # Let subscriptions match; sim clock should already be running after launch delay.
     for _ in range(20):
         rclpy.spin_once(node, timeout_sec=0.05)
 
-    # Wait until each robot has odom→base_scan in the global /tf graph so AMCL's laser
-    # filter does not drop every scan ("earlier than all the data in the transform cache").
+    # Wait for odom→base_scan in /tf so AMCL does not reject scans.
     tf_buf = tf2_ros.Buffer(cache_time=Duration(seconds=30.0))
     _ = tf2_ros.TransformListener(tf_buf, node)
     deadline = time.monotonic() + 90.0
@@ -65,7 +62,6 @@ def main() -> None:
         still = []
         for ns in pending:
             try:
-                # Time() = latest transform (avoids extrapolation vs wall/sim "now").
                 tf_buf.lookup_transform(f'{ns}/odom', f'{ns}/base_scan', Time())
             except tf2_ros.TransformException:
                 still.append(ns)

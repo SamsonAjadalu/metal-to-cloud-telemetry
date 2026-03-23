@@ -15,7 +15,7 @@ import os
 
 
 def _default_goal_pose_topic(cmd_vel_topic: str) -> str:
-    """e.g. /tb3_001/cmd_vel -> /tb3_001/goal_pose"""
+    """Derive goal_pose topic from cmd_vel topic."""
     suf = "/cmd_vel"
     if cmd_vel_topic.endswith(suf):
         return cmd_vel_topic[: -len(suf)] + "/goal_pose"
@@ -56,7 +56,6 @@ class TelemetryBridge(Node):
         self.get_logger().info(f"Session ID: {self.session_id}")
         self.get_logger().info(f"Backend WebSocket URL: {self.backend_ws_url}")
 
-        # ROS -> bridge
         self.odom_sub = self.create_subscription(
             Odometry,
             self.odom_topic,
@@ -64,7 +63,6 @@ class TelemetryBridge(Node):
             10
         )
 
-        # bridge -> ROS
         self.cmd_vel_pub = self.create_publisher(
             Twist,
             self.cmd_vel_topic,
@@ -76,13 +74,10 @@ class TelemetryBridge(Node):
             10,
         )
 
-        # Telemetry queue for websocket sender thread
         self.telemetry_queue: queue.Queue[dict] = queue.Queue(maxsize=200)
 
-        # Stop flag
         self._stop_event = threading.Event()
 
-        # Start websocket worker in background thread
         self.ws_thread = threading.Thread(
             target=self._start_ws_worker,
             daemon=True
@@ -155,10 +150,7 @@ class TelemetryBridge(Node):
         )
 
     def handle_backend_command(self, command: dict):
-        """
-        command: type command -> Twist on cmd_vel
-        goal: type goal -> PoseStamped on goal_pose (Nav2)
-        """
+        """Handle JSON from backend: type command (cmd_vel) or goal (Nav2 pose)."""
         msg_type = command.get("type")
         if msg_type == "command":
             self._handle_velocity_command(command)
