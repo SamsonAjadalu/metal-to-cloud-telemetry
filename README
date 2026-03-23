@@ -258,12 +258,31 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-### Quick start
+## Full sim stack (Gazebo + fleet + Nav2) — one terminal
 
-Kill any stale Gazebo processes first (required for a clean run):
+Use this for the integrated launch (`stack_sim_nav2.launch.py`). Always stop old sim processes first, then build and launch:
 
 ```bash
-pkill -9 -f "gzserver|gzclient|spawn_entity.py|telemetry_bridge|ros2 launch turtlebot3_gazebo" || true
+cd /path/to/metal-to-cloud-telemetry
+bash scripts/kill_fleet_sim.sh
+
+export WS_ROOT="$PWD"
+source /opt/ros/humble/setup.bash
+colcon build --packages-select robot_bridge --symlink-install
+source "$WS_ROOT/install/setup.bash"
+
+ros2 launch robot_bridge stack_sim_nav2.launch.py
+```
+
+On a **headless VPS** (no display), add launch args, for example: `headless:=true use_rviz:=false`.
+
+### Quick start (fleet orchestrator only)
+
+Stop stale sim processes (same helper as above):
+
+```bash
+cd /path/to/metal-to-cloud-telemetry
+bash scripts/kill_fleet_sim.sh
 ```
 
 Spawn robots:
