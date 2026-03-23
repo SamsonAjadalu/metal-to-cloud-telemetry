@@ -1,0 +1,381 @@
+Robot Bridge / Simulation Notes
+
+This file explains how to run the TurtleBot3 + Gazebo simulation and the ROS 2 bridge code.
+
+- run **TurtleBot3 in Gazebo Classic** on ROS 2 Humble
+- read robot telemetry from ROS topics such as `/odom`
+- send telemetry to the backend over WebSocket
+- receive velocity commands from the backend over WebSocket
+- publish commands to `/cmd_vel`
+- support multiple robots by running one bridge instance per robot with a different `ROBOT_ID`
+
+### Person A — Frontend 
+Frontend should connect to:
+- `ws://localhost:8000/ws/frontend`
+
+Frontend sends command messages like (example for one robot):
+```json
+{
+  "type": "command",
+  "robot_id": "tb3_01",
+  "linear_x_cmd": 0.2,
+  "angular_z_cmd": 0.0
+}
+```
+
+`robot_id` is not fixed. Frontend should send the selected robot ID, for example `tb3_01`, `tb3_02`, etc.
+
+Frontend should expect live telemetry messages like:
+```json
+{
+  "type": "telemetry",
+  "robot_id": "tb3_01",
+  "map_id": "map_01",
+  "session_id": "session_tb3_01_20260307",
+  "timestamp": "2026-03-07T16:20:00Z",
+  "x": 1.24,
+  "y": 2.81,
+  "yaw": 0.52,
+  "linear_x": 0.12,
+  "angular_z": 0.03,
+  "battery": 98.5
+}
+```
+
+### Person B — Backend (FastAPI + WebSocket + REST)
+Backend should expose these WebSocket endpoints:
+- robot bridge: `ws://localhost:8000/ws/robot/{robot_id}`
+- frontend: `ws://localhost:8000/ws/frontend`
+
+Backend is expected to:
+- accept telemetry from the robot bridge on `/ws/robot/{robot_id}`
+- forward telemetry to frontend clients
+- accept command messages from frontend clients
+- forward command messages to the correct robot bridge
+- optionally store telemetry by `robot_id` and `session_id`
+
+
+
+## Simulation setup used
+This project is currently using:
+- **ROS 2 Humble**
+- **Gazebo Classic**
+- **TurtleBot3 Burger**
+
+This was installed with the ROS 2 binary packages.
+
+## Install simulation dependencies
+If ROS 2 Humble is already installed, install TurtleBot3 + Gazebo packages with:
+
+```bash
+sudo apt install ros-humble-turtlebot3*
+```
+
+Set the TurtleBot3 model:
+
+```bash
+export TURTLEBOT3_MODEL=burger
+```
+
+Optional: make it persistent
+
+```bash
+echo "export TURTLEBOT3_MODEL=burger" >> ~/.bashrc
+source ~/.bashrc
+```
+
+## Run TurtleBot3 in Gazebo
+Open terminal 1:
+
+```bash
+source /opt/ros/humble/setup.bash
+export TURTLEBOT3_MODEL=burger
+ros2 launch turtlebot3_gazebo empty_world.launch.py
+```
+
+That should start Gazebo Classic and spawn the TurtleBot3 robot.
+
+## Optional manual robot control
+Open terminal 2:
+
+```bash
+source /opt/ros/humble/setup.bash
+export TURTLEBOT3_MODEL=burger
+ros2 run turtlebot3_teleop teleop_keyboard
+```
+
+Useful topic check:
+
+```bash
+ros2 topic list
+ros2 topic echo /odom
+```
+
+## ROS topics currently used by the bridge
+Current MVP topics:
+- subscribe: `/odom` (`nav_msgs/msg/Odometry`)
+- publish: `/cmd_vel` (`geometry_msgs/msg/Twist`)
+
+## Bridge code expectations
+The bridge code expects backend WebSocket access at:
+- `ws://localhost:8000/ws/robot/{robot_id}`
+
+Examples:
+- `ws://localhost:8000/ws/robot/tb3_01`
+- `ws://localhost:8000/ws/robot/tb3_02`
+
+The backend should send command JSON like this (example for `tb3_01`):
+```json
+{
+  "type": "command",
+  "robot_id": "tb3_01",
+  "linear_x_cmd": 0.2,
+  "angular_z_cmd": 0.0
+}
+```
+
+The bridge will send telemetry JSON like this (example for tb3_01 on map_01):
+```json
+{
+  "type": "telemetry",
+  "robot_id": "tb3_01",
+  "map_id": "map_01",
+  "session_id": "session_tb3_01_20260307",
+  "timestamp": "2026-03-07T16:20:00Z",
+  "x": 1.24,
+  "y": 2.81,
+  "yaw": 0.52,
+  "linear_x": 0.12,
+  "angular_z": 0.03,
+  "battery": 98.5
+}
+```
+
+## Run the bridge code
+
+Open terminal 3:
+
+```bash
+export WS_ROOT="$PWD"
+source /opt/ros/humble/setup.bash
+colcon build --packages-select robot_bridge --symlink-install
+source "$WS_ROOT/install/setup.bash"
+
+ROBOT_ID=tb3_01 ros2 run robot_bridge telemetry_bridge
+```
+
+Use a different `ROBOT_ID` for each robot bridge instance.
+
+Examples:
+- `ROBOT_ID=tb3_01 ros2 run robot_bridge telemetry_bridge`
+- `ROBOT_ID=tb3_02 ros2 run robot_bridge telemetry_bridge`
+
+The same `telemetry_bridge.py` file is reused for all robots. Multi-robot support comes from running multiple instances with different `ROBOT_ID` values.
+
+## Python requirements
+The bridge uses ROS 2 Python packages from the ROS installation, plus one pip package:
+- `websockets`
+
+Install it with:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Message Format Specification (LOCKED)
+
+**Do not change these formats unless absolutely necessary. Changing message formats mid-project breaks teams.**
+
+### Telemetry Message
+```json
+{
+  "type": "telemetry",
+  "robot_id": "tb3_01",
+  "map_id": "map_01",
+  "session_id": "session_tb3_01_20260307",
+  "timestamp": "2026-03-07T16:20:00Z",
+  "x": 1.24,
+  "y": 2.81,
+  "yaw": 0.52,
+  "linear_x": 0.12,
+  "angular_z": 0.03,
+  "battery": 98.5
+}
+```
+
+### Command Message
+```json
+{
+  "type": "command",
+  "robot_id": "tb3_01",
+  "linear_x_cmd": 0.2,
+  "angular_z_cmd": 0.0
+}
+```
+
+### Goal Message
+```json
+{
+  "type": "goal",
+  "robot_id": "tb3_01",
+  "x": 4.2,
+  "y": 1.8,
+  "yaw": 0.0
+}
+```
+
+---
+
+## Fleet Orchestrator
+
+The fleet orchestrator (`fleet_orchestrator.py`) automates spawning multiple TurtleBot3 robots across one or more Gazebo worlds and starting a `telemetry_bridge` instance for each robot.
+
+### How it works
+
+1. Loads a persistent JSON state file (default `fleet_state.json`) that tracks which worlds and robots already exist.
+2. Fills free slots in existing worlds first, then creates new Gazebo worlds as needed.
+3. For each new robot:
+   - Waits for Gazebo's `/spawn_entity` service to be ready.
+   - Spawns the robot entity at a grid position (5 columns × N rows, 1.5 m spacing).
+   - Starts a `telemetry_bridge` process in the background with the robot's namespaced topics.
+4. Saves updated state back to the JSON file.
+
+Robots are named `tb3_001`, `tb3_002`, … and worlds are named `map_01`, `map_02`, …
+
+Robot topics are namespaced:
+- `/tb3_001/odom` — odometry
+- `/tb3_001/cmd_vel` — velocity command
+
+Each bridge connects to the backend at `{backend_url}/ws/robot/{robot_id}`.
+
+### Build
+
+```bash
+cd /path/to/metal-to-cloud-telemetry
+source /opt/ros/humble/setup.bash
+colcon build --symlink-install
+source install/setup.bash
+```
+
+## Full sim stack (Gazebo + fleet + Nav2) — one terminal
+
+Use this for the integrated launch (`stack_sim_nav2.launch.py`). Always stop old sim processes first, then build and launch:
+
+```bash
+cd /path/to/metal-to-cloud-telemetry
+bash scripts/kill_fleet_sim.sh
+
+export WS_ROOT="$PWD"
+source /opt/ros/humble/setup.bash
+colcon build --packages-select robot_bridge --symlink-install
+source "$WS_ROOT/install/setup.bash"
+
+ros2 launch robot_bridge stack_sim_nav2.launch.py
+```
+
+On a **headless VPS** (no display), add launch args, for example: `headless:=true use_rviz:=false`.
+
+### Robot count
+`stack_sim_nav2.launch.py` has `count` (default `3`).
+To spawn more robots, stop and re-run the same launch with `count:=<N>` (example: `count:=5`).
+
+### Quick start (fleet orchestrator only)
+
+Stop stale sim processes (same helper as above):
+
+```bash
+cd /path/to/metal-to-cloud-telemetry
+bash scripts/kill_fleet_sim.sh
+```
+
+Spawn robots:
+
+```bash
+ros2 launch robot_bridge fleet_orchestrator.launch.py count:=5
+```
+
+To add more robots to an existing session, run the same command again — the state file tracks what already exists so nothing is duplicated:
+
+```bash
+ros2 launch robot_bridge fleet_orchestrator.launch.py count:=5
+```
+
+### Launch arguments
+
+The launch file takes a single argument:
+
+| Argument | Default | Description |
+|---|---|---|
+| `count` | `1` | Number of **new** robots to add |
+
+For advanced options (headless mode, custom state file, backend URL, dry run), call the orchestrator directly:
+
+```bash
+ros2 run robot_bridge fleet_orchestrator \
+  --count 5 \
+  --headless true \
+  --state-file /tmp/fleet_state.json \
+  --backend-url ws://192.168.1.10:8000 \
+  --robots-per-world 10 \
+  --dry-run false
+```
+
+### State file
+
+The state file is a JSON file that tracks all spawned worlds and robots so re-running the orchestrator adds robots instead of duplicating existing ones.
+
+Example:
+```json
+{
+  "next_world_index": 2,
+  "next_robot_index": 6,
+  "worlds": [
+    {
+      "world_id": "map_01",
+      "world_name": "sim_world_01",
+      "capacity": 20,
+      "headless": true,
+      "robots": ["tb3_001", "tb3_002", "tb3_003", "tb3_004", "tb3_005"]
+    }
+  ]
+}
+```
+
+State files are excluded from version control via `.gitignore`.
+
+### Logs
+
+Per-robot and per-world logs are written to `.fleet_logs/` next to the state file:
+
+```
+.fleet_logs/
+  world_map_01.log
+  spawn_tb3_001.log
+  bridge_tb3_001.log
+  ...
+```
+
+### Environment variable overrides
+
+| Variable | Description |
+|---|---|
+| `WORLD_CMD_TEMPLATE` | Override the Gazebo world launch command |
+| `SPAWN_ROBOT_CMD_TEMPLATE` | Override the spawn_entity command |
+| `BRIDGE_CMD_TEMPLATE` | Override the telemetry_bridge command |
+| `TURTLEBOT3_MODEL` | TurtleBot3 model name (default: `burger`) |
+
+### telemetry_bridge environment variables
+
+Each bridge instance is configured entirely through environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `ROBOT_ID` | *(required)* | Robot identifier |
+| `MAP_ID` | `map_01` | Map/world identifier |
+| `ODOM_TOPIC` | `/odom` | Odometry topic to subscribe |
+| `CMD_VEL_TOPIC` | `/cmd_vel` | Velocity topic to publish |
+| `BACKEND_WS_URL` | `ws://localhost:8000/ws/robot/{robot_id}` | Full WebSocket URL for the backend |
+
+The orchestrator sets all of these automatically for each robot.
