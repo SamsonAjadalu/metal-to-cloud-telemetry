@@ -1,4 +1,4 @@
-"""One TurtleBot3 robot_state_publisher under a ROS namespace (matches namespaced TF frames)."""
+"""Namespaced robot_state_publisher for TurtleBot3."""
 
 import os
 
@@ -31,7 +31,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'use_sim_time',
                 default_value='true',
-                description='Must match Gazebo clock',
+                description='use_sim_time',
             ),
             GroupAction(
                 [

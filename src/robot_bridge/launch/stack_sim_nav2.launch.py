@@ -1,24 +1,4 @@
-"""
-One terminal: Gazebo (gzserver only, no extra default TurtleBot spawn) → fleet → Nav2.
-
-Why not `turtlebot3_world.launch.py` + fleet?
-  That launch already spawns a default TurtleBot and starts its own stack; fleet would
-  start a *second* Gazebo if it needs a new world. Use this file OR manual fleet+world,
-  not both.
-
-Order:
-  1) gzserver with turtlebot3_world.world
-  2) After `fleet_delay`, fleet_orchestrator with --skip-world-launch (spawn tb3_001…)
-  3) After `nav2_delay`, nav2_multi_robot.launch.py (must match ROBOT_NAMESPACES / count)
-
-Tune delays if your machine is slow. Match `count` to `ROBOT_NAMESPACES` in
-nav2_multi_robot.launch.py (default 3).
-
-Fleet state: this launch writes a **fresh ephemeral** state file under /tmp so the next
-robots are always tb3_001, tb3_002, … matching Nav2. Your workspace `fleet_state.json` is
-**not** used here — otherwise a long-lived file with next_robot_index=13 would spawn
-tb3_013+ while Nav2 still expects tb3_001/odom (broken TF).
-"""
+"""Gazebo (gzserver) + timed fleet spawn + Nav2. Uses /tmp fleet state so indices stay aligned with nav2_multi_robot."""
 
 import json
 import os
@@ -44,7 +24,6 @@ def generate_launch_description():
     pkg_tb3 = get_package_share_directory('turtlebot3_gazebo')
     pkg_rb = get_package_share_directory('robot_bridge')
 
-    # Ephemeral fleet state: empty map_01 so orchestrator spawns from tb3_001 again.
     sim_fleet_state = Path(tempfile.gettempdir()) / 'robot_bridge_stack_sim_fleet.json'
     sim_fleet_state.write_text(
         json.dumps(
@@ -107,7 +86,6 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(nav2_launch),
         launch_arguments={
             'use_rviz': LaunchConfiguration('use_rviz'),
-            # nav2_multi_robot Timer fires from launch start; must run after Nav2 is up (nav2_delay + bringup).
             'seed_delay': LaunchConfiguration('seed_delay'),
         }.items(),
     )
@@ -115,50 +93,42 @@ def generate_launch_description():
     return LaunchDescription(
         [
             SetEnvironmentVariable('TURTLEBOT3_MODEL', 'burger'),
-            # fleet-spawned telemetry_bridge reads this for goal_pose / odom timestamps in sim
             SetEnvironmentVariable('USE_SIM_TIME', 'true'),
-            # Avoid Fast DDS SHM lock failures when many processes share the host (Gazebo + Nav2).
             SetEnvironmentVariable('FASTDDS_BUILTIN_TRANSPORTS', 'UDPv4'),
             DeclareLaunchArgument(
                 'count',
                 default_value='3',
-                description='Robots to spawn (must match nav2_multi_robot ROBOT_NAMESPACES).',
+                description='Robot count; must match nav2_multi_robot.',
             ),
             DeclareLaunchArgument(
                 'backend_url',
                 default_value='ws://159.203.4.11:8000',
-                description=(
-                    'WebSocket base URL for telemetry_bridge (no path). '
-                    'Fleet sets BACKEND_WS_URL per robot. Use ws://localhost:8000 if the API runs locally.'
-                ),
+                description='Telemetry backend base URL (no /ws path).',
             ),
             DeclareLaunchArgument(
                 'headless',
                 default_value='false',
-                description="If true, no gzclient (GUI).",
+                description='Headless: no Gazebo GUI.',
             ),
             DeclareLaunchArgument(
                 'use_rviz',
                 default_value='true',
-                description='Passed to nav2_multi_robot.launch.py',
+                description='Start RViz (first robot only).',
             ),
             DeclareLaunchArgument(
                 'fleet_delay',
                 default_value='12.0',
-                description='Seconds after gzserver before fleet_orchestrator runs.',
+                description='Delay before fleet_orchestrator (s).',
             ),
             DeclareLaunchArgument(
                 'nav2_delay',
                 default_value='35.0',
-                description='Seconds after gzserver before Nav2 + RViz launch.',
+                description='Delay before Nav2 launch (s).',
             ),
             DeclareLaunchArgument(
                 'seed_delay',
                 default_value='18.0',
-                description=(
-                    'Seconds after **Nav2** starts (nav2_delay) before amcl_seed_pose. '
-                    'Timer is relative to nav2 launch, not gzserver.'
-                ),
+                description='Delay after Nav2 starts before amcl_seed_pose (s).',
             ),
             gzserver,
             gzclient,
