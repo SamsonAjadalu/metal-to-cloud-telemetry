@@ -6,6 +6,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:80"
+    deploy:
+      replicas: 2
     networks:
       - fleet-network
 
@@ -18,7 +20,9 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - type: bind
+        source: /mnt/volume_tor1_02/pg_data
+        target: /var/lib/postgresql/data
     networks:
       - fleet-network
     healthcheck:
@@ -27,6 +31,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == m2c-droplet2
 
   api:
     image: wofa/m2c-api:latest
@@ -34,14 +43,15 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
     networks:
       - fleet-network
+    deploy:
+      replicas: 1
 
   # bridge:
   #   image: wofa/m2c-bridge:latest
@@ -61,4 +71,4 @@ volumes:
 
 networks:
   fleet-network:
-    driver: bridge
+    driver: overlay
