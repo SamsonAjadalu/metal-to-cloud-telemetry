@@ -156,10 +156,11 @@ The bridge will send telemetry JSON like this (example for tb3_01 on map_01):
 Open terminal 3:
 
 ```bash
+export WS_ROOT="$PWD"
 source /opt/ros/humble/setup.bash
-cd ~/telemetry_ws
-colcon build --symlink-install
-source install/setup.bash
+colcon build --packages-select robot_bridge --symlink-install
+source "$WS_ROOT/install/setup.bash"
+
 ROBOT_ID=tb3_01 ros2 run robot_bridge telemetry_bridge
 ```
 
@@ -275,6 +276,10 @@ ros2 launch robot_bridge stack_sim_nav2.launch.py
 ```
 
 On a **headless VPS** (no display), add launch args, for example: `headless:=true use_rviz:=false`.
+
+### Robot count
+`stack_sim_nav2.launch.py` has `count` (default `3`).
+To spawn more robots, stop and re-run the same launch with `count:=<N>` (example: `count:=5`).
 
 ### Quick start (fleet orchestrator only)
 
