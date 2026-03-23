@@ -6,20 +6,39 @@ import threading
 from datetime import datetime, timezone
 
 import rclpy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import PoseStamped, Twist
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 import websockets
 import os
 
+
+def _default_goal_pose_topic(cmd_vel_topic: str) -> str:
+    """e.g. /tb3_001/cmd_vel -> /tb3_001/goal_pose"""
+    suf = "/cmd_vel"
+    if cmd_vel_topic.endswith(suf):
+        return cmd_vel_topic[: -len(suf)] + "/goal_pose"
+    return "/goal_pose"
+
+
 class TelemetryBridge(Node):
     def __init__(self):
-        super().__init__('telemetry_bridge')
+        use_sim = os.getenv("USE_SIM_TIME", "").lower() in ("1", "true", "yes")
+        super().__init__(
+            "telemetry_bridge",
+            parameter_overrides=[Parameter("use_sim_time", value=use_sim)],
+        )
 
         self.robot_id = os.getenv("ROBOT_ID", "tb3_001")
         self.map_id = os.getenv("MAP_ID", "map_01")
         self.odom_topic = os.getenv("ODOM_TOPIC", "/odom")
         self.cmd_vel_topic = os.getenv("CMD_VEL_TOPIC", "/cmd_vel")
+        self.goal_pose_topic = os.getenv(
+            "GOAL_POSE_TOPIC",
+            _default_goal_pose_topic(self.cmd_vel_topic),
+        )
+        self.goal_frame_id = os.getenv("GOAL_FRAME_ID", "map")
         self.session_id = (
             f"session_{self.robot_id}_"
             f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
@@ -31,6 +50,8 @@ class TelemetryBridge(Node):
         self.get_logger().info(f"Map ID: {self.map_id}")
         self.get_logger().info(f"Odometry Topic: {self.odom_topic}")
         self.get_logger().info(f"Cmd Vel Topic: {self.cmd_vel_topic}")
+        self.get_logger().info(f"Goal Pose Topic: {self.goal_pose_topic}")
+        self.get_logger().info(f"Goal frame_id: {self.goal_frame_id}")
         self.get_logger().info(f"Session ID: {self.session_id}")
         self.get_logger().info(f"Backend WebSocket URL: {self.backend_ws_url}")
 
@@ -47,6 +68,11 @@ class TelemetryBridge(Node):
             Twist,
             self.cmd_vel_topic,
             10
+        )
+        self.goal_pose_pub = self.create_publisher(
+            PoseStamped,
+            self.goal_pose_topic,
+            10,
         )
 
         # Telemetry queue for websocket sender thread
@@ -129,18 +155,18 @@ class TelemetryBridge(Node):
 
     def handle_backend_command(self, command: dict):
         """
-        Expected command JSON from backend:
-        {
-            "type": "command",
-            "robot_id": "tb3_01",
-            "linear_x_cmd": 0.2,
-            "angular_z_cmd": 0.0
-        }
+        command: type command -> Twist on cmd_vel
+        goal: type goal -> PoseStamped on goal_pose (Nav2)
         """
-        if command.get("type") != "command":
-            self.get_logger().warn(f"Ignoring non-command message: {command}")
-            return
+        msg_type = command.get("type")
+        if msg_type == "command":
+            self._handle_velocity_command(command)
+        elif msg_type == "goal":
+            self._handle_nav_goal(command)
+        else:
+            self.get_logger().warn(f"Ignoring message type={msg_type!r}: {command}")
 
+    def _handle_velocity_command(self, command: dict):
         robot_id = command.get("robot_id")
         if robot_id != self.robot_id:
             self.get_logger().info(
@@ -156,6 +182,36 @@ class TelemetryBridge(Node):
         )
 
         self.send_velocity_command(linear_x, angular_z)
+
+    def _handle_nav_goal(self, command: dict):
+        robot_id = command.get("robot_id")
+        if robot_id != self.robot_id:
+            self.get_logger().info(
+                f"Ignoring goal for robot_id={robot_id}"
+            )
+            return
+
+        x = float(command.get("x", 0.0))
+        y = float(command.get("y", 0.0))
+        yaw = float(command.get("yaw", 0.0))
+
+        msg = PoseStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = self.goal_frame_id
+        msg.pose.position.x = x
+        msg.pose.position.y = y
+        msg.pose.position.z = 0.0
+        half = yaw * 0.5
+        msg.pose.orientation.x = 0.0
+        msg.pose.orientation.y = 0.0
+        msg.pose.orientation.z = math.sin(half)
+        msg.pose.orientation.w = math.cos(half)
+
+        self.goal_pose_pub.publish(msg)
+        self.get_logger().info(
+            f"Published Nav2 goal to {self.goal_pose_topic} "
+            f"(frame={self.goal_frame_id}): x={x}, y={y}, yaw={yaw}"
+        )
 
     def _start_ws_worker(self):
         asyncio.run(self._websocket_loop())
