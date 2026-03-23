@@ -51,6 +51,7 @@ project-assets/
 frontend_backup/
 frontend_backup2/
 frontend_backup3/
+<<<<<<< HEAD
 
 # Local Docker packaging (keep on machine only)
 docker/
@@ -59,3 +60,8 @@ docker/
 # Ad-hoc dev scripts (not part of main workflow)
 scripts/self_test_fleet_nav2_tf.py
 scripts/ws_frontend_log.py
+=======
+frontend_backup4/
+
+backend_backup1/
+>>>>>>> origin/prod
