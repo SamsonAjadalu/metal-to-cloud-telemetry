@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import sys
 import time
-from typing import Tuple
 
 import rclpy
 import tf2_ros
@@ -16,10 +15,7 @@ from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
 from rclpy.utilities import remove_ros_args
 
-
-def _slot_xy(index: int) -> Tuple[float, float]:
-    """Match fleet_orchestrator grid: (slot % 5) * 1.0, (slot // 5) * 1.0."""
-    return float((index % 5) * 1.0), float((index // 5) * 1.0)
+from robot_bridge.spawn_layout import spawn_xy_for_slot
 
 
 def main() -> None:
@@ -84,7 +80,7 @@ def main() -> None:
         msg = PoseWithCovarianceStamped()
         msg.header.stamp = node.get_clock().now().to_msg()
         msg.header.frame_id = 'map'
-        x, y = _slot_xy(i)
+        x, y = spawn_xy_for_slot(i)
         msg.pose.pose.position.x = x
         msg.pose.pose.position.y = y
         msg.pose.pose.position.z = 0.0

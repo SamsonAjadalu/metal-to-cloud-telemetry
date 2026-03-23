@@ -13,6 +13,8 @@ try:
 except ImportError:  # pragma: no cover
     get_package_share_directory = None  # type: ignore[misc, assignment]
 
+from robot_bridge.spawn_layout import spawn_xy_for_slot
+
 
 def parse_bool(value: str) -> bool:
     return value.lower() in {"1", "true", "yes", "on"}
@@ -24,7 +26,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--robots-per-world", type=int, default=20)
     parser.add_argument("--headless", type=parse_bool, default=False)
     parser.add_argument("--state-file", default="fleet_state.json")
-    parser.add_argument("--backend-url", default="ws://localhost:8000")
+    parser.add_argument(
+        "--backend-url",
+        default="ws://159.203.4.11:8000",
+        help="WebSocket base URL for telemetry (no path). Override with ws://127.0.0.1:8000 for a local API.",
+    )
     parser.add_argument("--dry-run", type=parse_bool, default=False)
     parser.add_argument(
         "--skip-world-launch",
@@ -282,8 +288,7 @@ def allocate_robots(
                 robot_id = make_robot_id(state["next_robot_index"])
 
             slot_index = len(world["robots"])
-            x = (slot_index % 5) * 1.0
-            y = (slot_index // 5) * 1.0
+            x, y = spawn_xy_for_slot(slot_index)
             namespace = robot_id
 
             sdf_arg = ensure_fleet_tb3_sdf(logs_dir, robot_id, namespace, dry_run=dry_run)
@@ -389,8 +394,7 @@ def allocate_robots(
                 robot_id = make_robot_id(state["next_robot_index"])
 
             slot_index = len(world["robots"])
-            x = (slot_index % 5) * 1.0
-            y = (slot_index // 5) * 1.0
+            x, y = spawn_xy_for_slot(slot_index)
             namespace = robot_id
 
             sdf_arg = ensure_fleet_tb3_sdf(logs_dir, robot_id, namespace, dry_run=dry_run)
