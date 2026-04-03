@@ -179,7 +179,7 @@ The bridge uses ROS 2 Python packages from the ROS installation, plus one pip pa
 Install it with:
 
 ```bash
-pip install -r requirements.txt
+pip install -r telemetry_requirement.txt
 ```
 
 ---
