@@ -21,6 +21,7 @@ pkill -f gzserver 2>/dev/null || true
 pkill -f gzclient 2>/dev/null || true
 pkill -f rviz2 2>/dev/null || true
 pkill -f robot_state_publisher 2>/dev/null || true
+pkill -f tf_relay_tb3_ 2>/dev/null || true
 
 sleep 0.5
 pkill -9 -f gzserver 2>/dev/null || true
