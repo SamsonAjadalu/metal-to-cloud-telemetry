@@ -294,11 +294,10 @@ You can still override per-run with a launch arg, for example:
 ros2 launch robot_bridge stack_sim_nav2.launch.py backend_url:=ws://159.203.4.11:8000
 ```
 
-No local display: `headless:=true use_rviz:=false`.
+Optional: `headless:=true` (no Gazebo GUI), `use_rviz:=true` (RViz; default is off).
 
 ### Robot count
-`stack_sim_nav2.launch.py` has `count` (default `3`).
-To spawn more robots, stop and re-run the same launch with `count:=<N>` (example: `count:=5`).
+`stack_sim_nav2.launch.py` `count` (default `3`) is passed to both `fleet_orchestrator` and `nav2_multi_robot.launch.py`, so namespaces stay `tb3_001` … `tb3_00N` in sync. Re-launch with `count:=<N>` to change N.
 
 ### Quick start (fleet orchestrator only)
 

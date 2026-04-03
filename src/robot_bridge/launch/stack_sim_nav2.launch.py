@@ -1,4 +1,4 @@
-"""Gazebo (gzserver) + timed fleet spawn + Nav2. Uses /tmp fleet state so indices stay aligned with nav2_multi_robot."""
+"""Gazebo (gzserver) + timed fleet spawn + Nav2. `count` is shared with nav2_multi_robot (tb3_001 …)."""
 
 import json
 import os
@@ -138,6 +138,7 @@ def generate_launch_description():
     nav2 = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(nav2_launch),
         launch_arguments={
+            'count': LaunchConfiguration('count'),
             'use_rviz': LaunchConfiguration('use_rviz'),
             'seed_delay': LaunchConfiguration('seed_delay'),
         }.items(),
@@ -152,7 +153,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 'count',
                 default_value='3',
-                description='Robot count; must match nav2_multi_robot.',
+                description='Robot count (fleet + Nav2 namespaces tb3_001 …).',
             ),
             DeclareLaunchArgument(
                 'backend_url',
@@ -166,8 +167,8 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 'use_rviz',
-                default_value='true',
-                description='Start RViz (first robot only).',
+                default_value='false',
+                description='Start RViz for the first namespace.',
             ),
             DeclareLaunchArgument(
                 'fleet_delay',
