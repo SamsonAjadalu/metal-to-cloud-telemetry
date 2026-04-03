@@ -240,6 +240,13 @@ def make_robot_id(next_robot_index: int) -> str:
     return f"tb3_{next_robot_index:03d}"
 
 
+def fleet_robot_ids(count: int, first_index: int = 1) -> list[str]:
+    """Robot IDs for the first `count` slots (matches stack_sim_nav2 initial next_robot_index)."""
+    if count < 1:
+        raise ValueError("count must be >= 1")
+    return [make_robot_id(i) for i in range(first_index, first_index + count)]
+
+
 def make_world_id(next_world_index: int) -> str:
     return f"map_{next_world_index:02d}"
 

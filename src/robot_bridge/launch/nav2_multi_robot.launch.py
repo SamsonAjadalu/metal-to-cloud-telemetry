@@ -17,7 +17,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from nav2_common.launch import ReplaceString
 
-ROBOT_NAMESPACES = ['tb3_001', 'tb3_002', 'tb3_003']
+from robot_bridge.fleet_orchestrator import fleet_robot_ids
 
 
 def launch_setup(context, *args, **kwargs):
@@ -33,9 +33,11 @@ def launch_setup(context, *args, **kwargs):
     )
 
     use_comp = LaunchConfiguration('use_composition').perform(context)
+    count = int(LaunchConfiguration('count').perform(context))
+    robot_namespaces = fleet_robot_ids(count)
 
     actions = []
-    for i, ns in enumerate(ROBOT_NAMESPACES):
+    for i, ns in enumerate(robot_namespaces):
         actions.append(
             Node(
                 package='robot_bridge',
@@ -123,7 +125,7 @@ def launch_setup(context, *args, **kwargs):
                             'run',
                             'robot_bridge',
                             'amcl_seed_pose',
-                            *ROBOT_NAMESPACES,
+                            *robot_namespaces,
                         ],
                         output='screen',
                     )
@@ -147,8 +149,13 @@ def generate_launch_description():
                 description='Path to map yaml (shared by all robots).',
             ),
             DeclareLaunchArgument(
+                'count',
+                default_value='3',
+                description='Number of namespaced stacks; must match fleet_orchestrator --count.',
+            ),
+            DeclareLaunchArgument(
                 'use_rviz',
-                default_value='true',
+                default_value='false',
                 description='If true, start one RViz for the first namespace only.',
             ),
             DeclareLaunchArgument(
