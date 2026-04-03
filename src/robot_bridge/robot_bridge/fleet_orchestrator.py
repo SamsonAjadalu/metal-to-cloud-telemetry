@@ -13,6 +13,7 @@ try:
 except ImportError:  # pragma: no cover
     get_package_share_directory = None  # type: ignore[misc, assignment]
 
+from robot_bridge.defaults import DEFAULT_BACKEND_BASE_URL
 from robot_bridge.spawn_layout import spawn_xy_for_slot
 
 
@@ -28,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--state-file", default="fleet_state.json")
     parser.add_argument(
         "--backend-url",
-        default=os.getenv("BACKEND_BASE_URL", "ws://159.203.4.11:8000"),
+        default=os.getenv("BACKEND_BASE_URL", DEFAULT_BACKEND_BASE_URL),
         help="Telemetry WS base URL (no path).",
     )
     parser.add_argument("--dry-run", type=parse_bool, default=False)

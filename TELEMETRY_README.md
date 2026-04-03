@@ -261,10 +261,24 @@ source install/setup.bash
 
 ## TA: live Gazebo (team VPS)
 
-Runs on the team’s VPS while someone on the team operates it. TA opens a browser only
+Runs on the team’s VPS while someone on the team operates it. TA uses a browser only.
 
 - noVNC: [http://138.197.132.226/vnc.html](http://138.197.132.226/vnc.html)
 - Basic Auth user: **`tauser`**. Password: [repo wiki — TA credentials](https://github.com/SamsonAjadalu/metal-to-cloud-telemetry/wiki/TA-Credentials).
+
+**TA / marking — use this team backend (WebSocket base URL):** point the dashboard at the deployed server, for example:
+
+```bash
+export BACKEND_BASE_URL=ws://159.203.4.11:8000
+```
+
+Or in repo root `.env.telemetry`:
+
+```bash
+BACKEND_BASE_URL=ws://159.203.4.11:8000
+```
+
+Frontend connects to `ws://159.203.4.11:8000/ws/frontend`; each robot bridge uses `ws://159.203.4.11:8000/ws/robot/{robot_id}` (see **Person A / Person B** sections above).
 
 ## Full sim stack (Gazebo + fleet + Nav2) — one terminal
 
@@ -282,16 +296,17 @@ source "$WS_ROOT/install/setup.bash"
 ros2 launch robot_bridge stack_sim_nav2.launch.py
 ```
 
-Backend URL defaults are read automatically from `.env.telemetry` (if present in `WS_ROOT` or the current directory). Keep this file in the repo root, for example:
+Backend URL: if unset, code defaults to `ws://localhost:8000`. For a remote backend (robot and server on different hosts), copy `.env.telemetry.example` to `.env.telemetry` in the repo root and set `BACKEND_BASE_URL` (no `/ws` path). `stack_sim_nav2` reads that file from `WS_ROOT` or the current directory.
 
 ```bash
-BACKEND_BASE_URL=ws://159.203.4.11:8000
+cp .env.telemetry.example .env.telemetry
+# edit BACKEND_BASE_URL to your server, e.g. ws://203.0.113.10:8000
 ```
 
-You can still override per-run with a launch arg, for example:
+Override per run:
 
 ```bash
-ros2 launch robot_bridge stack_sim_nav2.launch.py backend_url:=ws://159.203.4.11:8000
+ros2 launch robot_bridge stack_sim_nav2.launch.py backend_url:=ws://YOUR_SERVER:8000
 ```
 
 Optional: `headless:=true` (no Gazebo GUI), `use_rviz:=true` (RViz; default is off).
@@ -335,7 +350,7 @@ ros2 run robot_bridge fleet_orchestrator \
   --count 5 \
   --headless true \
   --state-file /tmp/fleet_state.json \
-  --backend-url ws://159.203.4.11:8000 \
+  --backend-url ws://localhost:8000 \
   --robots-per-world 10 \
   --dry-run false
 ```

@@ -13,6 +13,8 @@ from rclpy.parameter import Parameter
 import websockets
 import os
 
+from robot_bridge.defaults import DEFAULT_BACKEND_BASE_URL
+
 
 def _default_goal_pose_topic(cmd_vel_topic: str) -> str:
     """Derive goal_pose topic from cmd_vel topic."""
@@ -44,7 +46,7 @@ class TelemetryBridge(Node):
             f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         )
 
-        backend_base_url = os.getenv("BACKEND_BASE_URL", "ws://159.203.4.11:8000")
+        backend_base_url = os.getenv("BACKEND_BASE_URL", DEFAULT_BACKEND_BASE_URL)
         _default_backend_ws = (
             f"{backend_base_url.rstrip('/')}/ws/robot/{self.robot_id}"
         )

@@ -18,6 +18,8 @@ from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import EqualsSubstitution, LaunchConfiguration
 
+from robot_bridge.defaults import DEFAULT_BACKEND_BASE_URL
+
 
 def _read_env_key(path: str, key: str) -> str | None:
     if not path or not os.path.exists(path):
@@ -68,7 +70,7 @@ def _default_backend_base_url() -> str:
         value = _read_env_key(candidate, 'BACKEND_BASE_URL')
         if value:
             return value
-    return 'ws://159.203.4.11:8000'
+    return DEFAULT_BACKEND_BASE_URL
 
 
 def generate_launch_description():
