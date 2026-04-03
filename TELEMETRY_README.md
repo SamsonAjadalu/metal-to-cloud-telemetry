@@ -259,6 +259,13 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
+## TA: live Gazebo (team VPS)
+
+Runs on the team’s VPS while someone on the team operates it. TA opens a browser only
+
+- noVNC: [http://138.197.132.226/vnc.html](http://138.197.132.226/vnc.html)
+- Basic Auth user: **`tauser`**. Password: [repo wiki — TA credentials](https://github.com/SamsonAjadalu/metal-to-cloud-telemetry/wiki/TA-Credentials).
+
 ## Full sim stack (Gazebo + fleet + Nav2) — one terminal
 
 Use this for the integrated launch (`stack_sim_nav2.launch.py`). Always stop old sim processes first, then build and launch:
@@ -287,7 +294,7 @@ You can still override per-run with a launch arg, for example:
 ros2 launch robot_bridge stack_sim_nav2.launch.py backend_url:=ws://159.203.4.11:8000
 ```
 
-On a **headless VPS** (no display), add launch args, for example: `headless:=true use_rviz:=false`.
+No local display: `headless:=true use_rviz:=false`.
 
 ### Robot count
 `stack_sim_nav2.launch.py` has `count` (default `3`).
