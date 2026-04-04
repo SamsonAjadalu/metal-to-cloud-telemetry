@@ -44,3 +44,7 @@ Production database credentials and environment variables are **not
 managed via the repository**.
 
 They are stored securely on the Droplet in a dedicated, restricted file and injected at deployment runtime.
+
+### Development credentials (course submission)
+
+**Credentials sent to TA.** Values beyond the repository `.env.example` templates were emailed to the TA per course instructions. **Password:** (Credentials sent to TA via email.)
