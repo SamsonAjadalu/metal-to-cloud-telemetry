@@ -41,7 +41,7 @@ const FleetStoredSummary: React.FC = () => {
                 <div>
                     <h1 style={{ marginTop: 0 }}>Stored fleet summary</h1>
                     <p style={{ maxWidth: '640px', color: '#555', margin: 0 }}>
-                        Rows below come from <code>GET /api/fleet</code> (PostgreSQL). Distance and last-seen persist across API restarts; this view is for demonstrating storage, not live replay.
+                        View cumulative mission analytics and historical telemetry records retrieved from persistent storage.
                     </p>
                 </div>
                 <button
