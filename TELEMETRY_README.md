@@ -9,7 +9,7 @@ This file explains how to run the TurtleBot3 + Gazebo simulation and the ROS 2 b
 - publish commands to `/cmd_vel`
 - support multiple robots by running one bridge instance per robot with a different `ROBOT_ID`
 
-### Person A — Frontend 
+### Person A: Frontend
 Frontend should connect to:
 - `ws://localhost:8000/ws/frontend`
 
@@ -42,7 +42,7 @@ Frontend should expect live telemetry messages like:
 }
 ```
 
-### Person B — Backend (FastAPI + WebSocket + REST)
+### Person B: Backend (FastAPI + WebSocket + REST)
 Backend should expose these WebSocket endpoints:
 - robot bridge: `ws://localhost:8000/ws/robot/{robot_id}`
 - frontend: `ws://localhost:8000/ws/frontend`
@@ -253,8 +253,8 @@ The fleet orchestrator (`fleet_orchestrator.py`) automates spawning multiple Tur
 Robots are named `tb3_001`, `tb3_002`, … and worlds are named `map_01`, `map_02`, …
 
 Robot topics are namespaced:
-- `/tb3_001/odom` — odometry
-- `/tb3_001/cmd_vel` — velocity command
+- `/tb3_001/odom`: odometry
+- `/tb3_001/cmd_vel`: velocity command
 
 Each bridge connects to the backend at `{backend_url}/ws/robot/{robot_id}`.
 
@@ -274,7 +274,7 @@ Runs on the seperate VPS, TA opens a browser only
 - noVNC: [http://138.197.132.226/vnc.html](http://138.197.132.226/vnc.html)
 - Basic Auth user: **`tauser`**. Password: (Credentials sent to TA via email).
 
-## Full sim stack (Gazebo + fleet + Nav2) — one terminal
+## Full sim stack (Gazebo + fleet + Nav2) - one terminal
 
 Use this for the integrated launch (`stack_sim_nav2.launch.py`). Always stop old sim processes first, then build and launch:
 
@@ -322,7 +322,7 @@ Spawn robots:
 ros2 launch robot_bridge fleet_orchestrator.launch.py count:=5
 ```
 
-To add more robots to an existing session, run the same command again — the state file tracks what already exists so nothing is duplicated:
+To add more robots to an existing session, run the same command again; the state file tracks what already exists so nothing is duplicated:
 
 ```bash
 ros2 launch robot_bridge fleet_orchestrator.launch.py count:=5
