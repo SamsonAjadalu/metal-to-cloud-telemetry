@@ -28,6 +28,7 @@ fleet_state*.json
 
 # Local development notes
 LOCAL_TEST_SUMMARY.md
+readme-sample.md
 
 # Python
 __pycache__/
