@@ -2,9 +2,9 @@
 
 ## Video Demo
 
-**URL:** [YouTube]
+**URL:** https://youtu.be/wze2J_bELDw
 
-This video (1–5 minutes) walks through the live dashboard, user flow, Docker/PostgreSQL/Swarm highlights, monitoring or health checks, and the **deployed** application URL in the browser.
+This video walks through the live dashboard, user flow, Docker/PostgreSQL/Swarm highlights, monitoring or health checks, and the **deployed** application URL in the browser.
 
 ---
 
