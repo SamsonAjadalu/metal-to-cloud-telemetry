@@ -1,5 +1,7 @@
 // src/services/websocket.ts
 
+import { getFrontendWebSocketUrl } from '../config';
+
 export interface TelemetryData {
     timestamp: number;
     robot_id?: string;
@@ -13,17 +15,13 @@ export interface TelemetryData {
     angular_z?: number;
 }
 
-/**
- * Mock WebSocket Service for Telemetry
- * Person B (Backend) will replace this with real FastAPI WebSocket connection.
- */
 class TelemetryWebSocket {
     private url: string;
     private socket: WebSocket | null = null;
     private onMessageCallback: ((data: TelemetryData) => void) | null = null;
 
-    constructor(url: string = 'ws://159.203.4.11:8000/ws/frontend') {
-        this.url = url;
+    constructor(url?: string) {
+        this.url = url ?? getFrontendWebSocketUrl();
     }
 
     connect() {
@@ -31,9 +29,9 @@ class TelemetryWebSocket {
         if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
             return;
         }
-        
+
         this.socket = new WebSocket(this.url);
-        
+
         this.socket.onopen = () => {
             console.log('[WebSocket] Connected');
         };
@@ -51,7 +49,6 @@ class TelemetryWebSocket {
 
         this.socket.onclose = () => {
             console.log('[WebSocket] Disconnected');
-            // Auto-reconnect could be implemented here
         };
     }
 
@@ -74,24 +71,24 @@ class TelemetryWebSocket {
         }
     }
 
-    sendTwistCommand(robotId: string, twist: { linear_x_cmd: number, angular_z_cmd: number }) {
+    sendTwistCommand(robotId: string, twist: { linear_x_cmd: number; angular_z_cmd: number }) {
         console.log(`[WebSocket] Sending Twist -> Robot: ${robotId}`, twist);
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-            this.socket.send(JSON.stringify({ 
-                type: 'command', 
-                robot_id: robotId, 
+            this.socket.send(JSON.stringify({
+                type: 'command',
+                robot_id: robotId,
                 linear_x_cmd: twist.linear_x_cmd,
-                angular_z_cmd: twist.angular_z_cmd 
+                angular_z_cmd: twist.angular_z_cmd
             }));
         }
     }
 
-    sendGoalCommand(robotId: string, goal: { x: number, y: number, yaw: number }) {
+    sendGoalCommand(robotId: string, goal: { x: number; y: number; yaw: number }) {
         console.log(`[WebSocket] Sending Nav2 Goal -> Robot: ${robotId}`, goal);
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-            this.socket.send(JSON.stringify({ 
-                type: 'goal', 
-                robot_id: robotId, 
+            this.socket.send(JSON.stringify({
+                type: 'goal',
+                robot_id: robotId,
                 x: goal.x,
                 y: goal.y,
                 yaw: goal.yaw

@@ -53,7 +53,7 @@ const Navbar: React.FC = () => {
                 <label className="menu-icon" htmlFor="menu-btn"><span className="navicon"></span></label>
                 <ul className="menu">
                     <li><Link to="/">Dashboard</Link></li>
-                    <li><Link to="/replay">Replay</Link></li>
+                    <li><Link to="/fleet-summary">Stored fleet</Link></li>
                 </ul>
             </div>
         </nav>

@@ -138,7 +138,7 @@ async def startup_event():
     asyncio.create_task(batch_save_to_db())
     print("🚀 Background batch writer started!")
 
-# 3. REST APIs (For local testing, frontend replay, and fleet overview)
+# 3. REST APIs (fleet overview and HTTP telemetry ingest)
 
 @app.get("/status")
 def check_status():
@@ -187,7 +187,7 @@ def save_telemetry(data: TelemetryPayload, db: Session = Depends(get_db)):
 
 
 
-# Replay Endpoints (Historical Data for UI)
+# Session history (optional; full time-series for tooling — UI uses /api/fleet for persistence demo)
 
 
 @app.get("/sessions")
