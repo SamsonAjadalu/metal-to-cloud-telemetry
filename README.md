@@ -2,7 +2,9 @@
 
 ## Video Demo
 
-**URL:** https://youtu.be/wze2J_bELDw
+**URL:** [https://youtu.be/wze2J_bELDw](https://youtu.be/wze2J_bELDw)
+
+[![Metal-to-Cloud Telemetry Demo](https://img.youtube.com/vi/wze2J_bELDw/maxresdefault.jpg)](https://youtu.be/wze2J_bELDw)
 
 This video walks through the live dashboard, user flow, Docker/PostgreSQL/Swarm highlights, monitoring or health checks, and the **deployed** application URL in the browser.
 
