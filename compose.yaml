@@ -16,17 +16,19 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      - POSTGRES_DB=metal_to_cloud
+      - POSTGRES_USER=robot_admin
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
     volumes:
       - type: bind
         source: /mnt/volume_tor1_02/pg_data
         target: /var/lib/postgresql/data
+    secrets:
+      - postgres_password
     networks:
       - fleet-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U robot_admin -d metal_to_cloud"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -47,28 +49,60 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - DATABASE_URL=DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}
     networks:
       - fleet-network
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.hostname == m2c-droplet1
 
-  # bridge:
-  #   image: wofa/m2c-bridge:latest
-  #   build:
-  #     context: ./robot_bridge
-  #     dockerfile: Dockerfile
-  #   environment:
-  #     - ROBOT_ID=${ROBOT_ID:-tb3_01}
-  #     - BACKEND_HOST=api
-  #   networks:
-  #     - fleet-network
-  #   depends_on:
-  #     - api
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    networks:
+      - fleet-network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == m2c-droplet1
+
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - fleet-network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == m2c-droplet1
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - fleet-network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == m2c-droplet1
 
 volumes:
   pg_data:
+  grafana_data:
 
 networks:
   fleet-network:
     driver: overlay
+
+secrets:
+  postgres_password:
+    external: true
