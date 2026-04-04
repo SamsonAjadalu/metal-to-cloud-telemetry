@@ -157,11 +157,11 @@ These illustrate DevOps, orchestration, and health checks.
 
 These show multi-node operation: **Droplet 1** (manager) and **Droplet 2** (worker) as separate hosts in the Swarm.
 
-![Figure 8a: Droplet 1 metrics](./docs/images/08a-m2c-droplet1-metrics-A.png)
+![Figure 8a: Droplet 1 metrics](./docs/images/08-m2c-droplet1-infrastructure-metrics-A.png)
 
 *Figure 8a. Infrastructure metrics for Droplet 1 (manager node), including CPU, load, and disk I/O.*
 
-![Figure 8b: Droplet 2 metrics](./docs/images/08b-m2c-droplet2-metrics-A.png)
+![Figure 8b: Droplet 2 metrics](./docs/images/08-m2c-droplet2-infrastructure-metrics-A.png)
 
 *Figure 8b. Infrastructure metrics for Droplet 2 (worker node), including bandwidth and memory usage for load-balanced services.*
 
