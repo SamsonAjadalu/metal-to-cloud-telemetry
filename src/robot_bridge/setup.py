@@ -18,7 +18,7 @@ setup(
     maintainer='Samson Ajadalu',
     maintainer_email='samson@samsonajadalu.com',
     description='Robot bridge for telemetry and cmd_vel forwarding',
-    license='TODO: License declaration',
+    license='MIT',
     extras_require={
         'test': [
             'pytest',

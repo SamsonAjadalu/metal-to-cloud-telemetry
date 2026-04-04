@@ -68,7 +68,7 @@ def _default_backend_base_url() -> str:
         value = _read_env_key(candidate, 'BACKEND_BASE_URL')
         if value:
             return value
-    return 'ws://159.203.4.11:8000'
+    return 'ws://localhost:8000'
 
 
 def generate_launch_description():
