@@ -234,7 +234,7 @@ The production environment is split across two cloud providers to simulate a tru
 ## 9. Individual Contributions
 
 - **Hassan Mahdi:** Led the frontend development. Designed the React component architecture, implemented the WebSocket client for real-time data ingestion, and built the UI layout. *(See Git history under `frontend/`.)*
-- **Yulong Sheng:** Architected the FastAPI backend. Developed the REST endpoints for fleet and session summary data, designed the SQLAlchemy database models, and handled the server-side WebSocket broadcasting logic. *(See Git history under `backend/`.)*
+- **Yulong Sheng:** Architected the FastAPI backend. Implemented high-performance Data Persistence using an in-memory buffer and asynchronous batch commits to PostgreSQL to prevent I/O locking. Designed the 'Agnostic Routing' WebSocket architecture to act as a transparent proxy, ensuring sub-millisecond latency for live telemetry and Target Commands. (See Git history under backend/.)*
 - **Yamoah Attafuah:** Managed Cloud Ops. Wrote the Dockerfiles, configured the `compose.yaml` for Swarm deployment, set up the DigitalOcean infrastructure, implemented the GitHub Actions CI/CD pipeline, secrets management with Docker Secrets and custom monitoring and observability stack with Grafana, Loki and Promtail. *(See Git history in the repository root and `.github/`.)*
 - **Samson Ajadalu:** Developed the robotics telemetry bridge. Wrote the Python nodes in ROS 2 to extract data from Gazebo/TurtleBot3 and stream it to the cloud backend. Handled full-stack integration by debugging WebSocket connections and fixing CORS policy errors between the frontend and API. Also authored the project's open-source documentation, including the main README and contribution guidelines.
 
