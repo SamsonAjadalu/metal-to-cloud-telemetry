@@ -26,7 +26,11 @@ jobs:
 
       - name: Build Frontend Image
         run: |
-          docker build -t wofa/m2c-frontend:latest ./frontend
+          # Must match where the browser reaches the API (same host as Swarm published ports is typical).
+          API_BASE="http://${{ secrets.DROPLET_IP }}:8000"
+          docker build \
+            --build-arg "VITE_API_BASE_URL=${API_BASE}" \
+            -t wofa/m2c-frontend:latest ./frontend
           docker push wofa/m2c-frontend:latest
 
   deploy-to-swarm:
