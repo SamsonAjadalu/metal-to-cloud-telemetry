@@ -48,8 +48,10 @@ services:
       - db
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}
+    secrets:
+      - postgres_password
+    env_file:
+      - .env
     networks:
       - fleet-network
     deploy:

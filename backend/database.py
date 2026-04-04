@@ -5,10 +5,21 @@ import os
 
 # Use environment variable for database URL, fallback to local default if not found.
 # Note: In Docker Swarm/Compose, the host should be the database service name (e.g., 'db' or 'postgres').
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://robot_admin:secret_password@db:5432/metal_to_cloud"
-)
+try:
+    with open('/run/secrets/postgres_password', 'r') as file:
+        db_password = file.read().strip()
+except FileNotFoundError:
+    # Fallback if a developer runs this locally without Swarm
+    db_password = os.getenv("DB_PASSWORD", "local_testing_password")
+
+# Read the non-sensitive configuration from the environment
+db_user = os.getenv("DB_USER", "robot_admin")
+db_host = os.getenv("DB_HOST", "db")
+db_port = os.getenv("DB_PORT", "5432")
+db_name = os.getenv("DB_NAME", "metal_to_cloud")
+
+# Construct the dynamic URL
+DATABASE_URL = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 # Initialize SQLAlchemy engine
 engine = create_engine(DATABASE_URL)
