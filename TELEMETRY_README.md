@@ -54,7 +54,15 @@ Backend is expected to:
 - forward command messages to the correct robot bridge
 - optionally store telemetry by `robot_id` and `session_id`
 
+### Dashboard map images (who changes what)
 
+To keep WebSocket traffic light, the live dashboard does not stream map images. Instead, it loads static PNG (and YAML metadata) from paths derived from **`MAP_ID`**: the bridge sends `map_id` in telemetry (default `map_01`), and the UI requests `/maps/{map_id}/{map_id}.png` and `/maps/{map_id}/{map_id}.yaml` on the same origin as the dashboard.
+
+- **Where maps live:** The frontend requests maps under `/maps/{map_id}/`.
+- **Proxy configuration:** In production, the frontend Nginx container (**`frontend/nginx.conf`**) reverse-proxies `/maps/` to this team’s DigitalOcean Spaces bucket (`proxy_pass` and `Host` header). That URL is a **known deployment constraint**, not something configured in the ROS bridge.
+- **Forks, new buckets, or local testing:** Deploying your own copy requires either updating **`proxy_pass`** in **`frontend/nginx.conf`** to your own object storage (and uploading the same `maps/<map_id>/` layout), or serving those static files from the Nginx container / another same-origin path. Until that is in place, the map panel may not load even if telemetry and WebSockets work.
+
+To add another map, put `maps/<map_id>/<map_id>.png` and `.yaml` in the bucket and run the bridge with **`MAP_ID=<map_id>`** so telemetry matches the folder the UI loads.
 
 ## Simulation setup used
 This project is currently using:
@@ -261,7 +269,7 @@ source install/setup.bash
 
 ## TA: live Gazebo (team VPS)
 
-Runs on the team’s VPS while someone on the team operates it. TA opens a browser only
+Runs on the seperate VPS, TA opens a browser only
 
 - noVNC: [http://138.197.132.226/vnc.html](http://138.197.132.226/vnc.html)
 - Basic Auth user: **`tauser`**. Password: (Credentials sent to TA via email).
