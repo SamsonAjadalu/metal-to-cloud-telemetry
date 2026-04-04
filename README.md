@@ -13,7 +13,7 @@ This video (1–5 minutes) walks through the live dashboard, user flow, Docker/P
 | Name | Student # | Email | Role |
 | :--- | :--- | :--- | :--- |
 | Hassan Mahdi | 1005985212 |hassan.mahdi@mail.utoronto.ca | Frontend Engineering |
-| Yulong Sheng | [Insert #] | [Insert Email] | Backend & API Engineering |
+| Yulong Sheng | 1011838843 | steve.sheng@mail.utoronto.ca | Backend & API Engineering |
 | Yamoah Attafuah | 1012642954 | yamoah.attafuah@mail.utoronto.ca | Cloud DevOps & Orchestration |
 | Samson Ajadalu | 1012365691 | s.ajadalu@mail.utoronto.ca | Robotics & Integration Lead |
 
