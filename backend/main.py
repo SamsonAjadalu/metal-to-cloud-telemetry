@@ -7,16 +7,23 @@ import database
 import asyncio
 import math
 import datetime
+import os
 
 # Create database tables (based on the latest database.py schema)
 database.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Metal-to-Cloud API")
 
-# CORS: allow the frontend (different origin in local dev) to call REST endpoints
+# Browser origins allowed to call REST (not the API's own URL). Comma-separated in env.
+_origins_raw = os.getenv(
+    "CORS_ALLOW_ORIGINS",
+    "http://localhost:3000,http://localhost:5173",
+)
+_cors_origins = [o.strip() for o in _origins_raw.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -139,6 +146,11 @@ async def startup_event():
     print("🚀 Background batch writer started!")
 
 # 3. REST APIs (fleet overview and HTTP telemetry ingest)
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "service": "metal-to-cloud-backend"}
+
 
 @app.get("/status")
 def check_status():
