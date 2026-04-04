@@ -264,7 +264,7 @@ source install/setup.bash
 Runs on the team’s VPS while someone on the team operates it. TA opens a browser only
 
 - noVNC: [http://138.197.132.226/vnc.html](http://138.197.132.226/vnc.html)
-- Basic Auth user: **`tauser`**. Password: [repo wiki — TA credentials](https://github.com/SamsonAjadalu/metal-to-cloud-telemetry/wiki/TA-Credentials).
+- Basic Auth user: **`tauser`**. Password: (Credentials sent to TA via email).
 
 ## Full sim stack (Gazebo + fleet + Nav2) — one terminal
 
