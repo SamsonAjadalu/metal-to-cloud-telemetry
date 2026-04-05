@@ -52,10 +52,20 @@ flowchart LR
     FE[React Dashboard]
     BE[FastAPI Backend]
     DB[(PostgreSQL<br/>Named Volume)]
+    
+    subgraph Observability
+      PT[Promtail]
+      LK[Loki]
+      GF[Grafana Dashboard]
+    end
+
     FE <-->|WebSocket live| BE
     FE <-->|REST history/sessions| BE
     BE -->|SQL| DB
     DB -->|SQL| BE
+    
+    PT -->|Docker Socket Logs| LK
+    LK -->|Aggregated Logs| GF
   end
 
   R[Robot/Sim Client<br/>Python or ROS2] <-->|WebSocket telemetry + commands| BE
@@ -81,6 +91,9 @@ Our application fulfills the course requirements through the following features:
 | **Containerized Deployment** | The Frontend, Backend, and Database are all isolated in individual Docker containers. | Docker Containerization |
 | **High-Availability Swarm** | The application is deployed across a DigitalOcean Docker Swarm, ensuring the API and UI remain available even if a node fails. | Orchestration (Swarm/K8s) |
 | **Persistent Storage Volumes** | PostgreSQL utilizes named Docker volumes mounted to DigitalOcean Block Storage to ensure telemetry data survives container restarts. | Storage |
+| **CI/CD Automation** | Fully automated GitHub Actions pipeline that builds environment-agnostic images and deploys them to the Swarm upon repository updates. | Automated Deployment (CI/CD) |
+| **Centralized Observability** | Custom Grafana, Loki, and Promtail stack to ingest, aggregate, and visualize container logs across the distributed Swarm in real-time. | System Monitoring & Logging |
+| **Secrets Management** | Hardened security posture by migrating plain-text database credentials to encrypted Docker Secrets. | Cloud Security Best Practices |
 
 Line counts below use **`cloc . --exclude-dir=node_modules,build,dist`**. The breakdown focuses on **core authored code** (application logic, styling, DevOps config, and project Markdown). It **does not** count bulk static assets such as **SVG** icons or large **JSON** / **XML** environment payloads, so the total reflects engineering effort rather than vendor or generated bulk.
 
@@ -112,14 +125,19 @@ To demonstrate the "metal" edge of our pipeline, we are hosting a continuous Gaz
 2. If a robot is actively publishing data via the ROS 2 bridge, it will appear in the "Active Agents" list.
 3. Click on a specific agent to view its real-time telemetry stream (Pose X/Y/Theta, Battery percentage).
 
-### Viewing persisted storage (summary)
+### Viewing Persistent Storage (Summary)
 
 Open **Stored fleet** in the navigation (route **`/fleet-summary`**). View cumulative mission analytics and historical telemetry records retrieved from persistent storage (fleet table: distance covered, last seen, status, battery, and last position).
 
-### Figures and screenshots
+### Monitoring System Health (Grafana)
+
+1. Open http://159.203.4.11:3001 to access the observability dashboard (Credentials sent to TA via email).
+2. Click on the Dashboards tab in the left sidebar and select the `Metal-to-Cloud Telemetry` dashboard to view the real-time aggregated logs from the Swarm containers (API, DB, and Frontend).
+
+### Figures and Screenshots
 
 
-#### 1. Fleet operations (user interface)
+#### 1. Fleet Operations (User Interface)
 
 These illustrate the live frontend and telemetry path.
 
@@ -166,8 +184,6 @@ These show multi-node operation: **Droplet 1** (manager) and **Droplet 2** (work
 ![Figure 8b: Droplet 2 metrics](./docs/images/08-m2c-droplet2-infrastructure-metrics-A.png)
 
 *Figure 8b. Infrastructure metrics for Droplet 2 (worker node), including bandwidth and memory usage for load-balanced services.*
-
-**Tip (droplet metrics):** You can combine several DigitalOcean graphs into **one image per droplet** (8a / 8b), or keep a **single** clear panel (often CPU and bandwidth) per node so the report stays readable, as clarity beats volume.
 
 ---
 
@@ -229,15 +245,14 @@ The production environment is split across two cloud providers to simulate a tru
 - **Live dashboard:** http://159.203.4.11:3000
 - **Backend API base:** http://159.203.4.11:8000 (REST and WebSocket entry point for the dashboard)
 - **Environment:** Production **`.env`** (or secrets) should set **`CORS_ALLOW_ORIGINS`** to include **`http://159.203.4.11:3000`** (or your final public UI origin). The frontend image build must receive **`VITE_API_BASE_URL=http://159.203.4.11:8000`** (or the matching public API URL) at build time (see CI **`DROPLET_IP`** wiring in **`.github/workflows/deploy.yml`**).
-- **Deployment Mechanism:** We utilize GitHub Actions for CI/CD. Pushing to the `prod` branch triggers a workflow that builds the updated Docker images, pushes them to the registry, and executes a `docker service update` command via SSH to our Swarm manager node.
-
+- **Deployment Mechanism:** We utilize GitHub Actions for CI/CD. Pushing to the `prod` branch triggers a workflow that builds updated environment-agnostic Docker images, pushes them to the container registry, and securely executes a `docker service update` on our Swarm manager node via encrypted SSH keys.
 ---
 
 ## 9. Individual Contributions
 
 - **Hassan Mahdi:** Led the frontend development. Designed the React component architecture, implemented the WebSocket client for real-time data ingestion, and built the UI layout. *(See Git history under `frontend/`.)*
 - **Yulong Sheng:** Architected the FastAPI backend. Implemented high-performance Data Persistence using an in-memory buffer and asynchronous batch commits to PostgreSQL to prevent I/O locking. Designed the 'Agnostic Routing' WebSocket architecture to act as a transparent proxy, ensuring sub-millisecond latency for live telemetry and Target Commands. *(See Git history under `backend/`.)*
-- **Yamoah Attafuah:** Managed cloud operations and DevOps architecture. Setup the multi-node DigitalOcean environment and orchestrated the Docker Swarm deployment, configuring dynamic service routing, stateful volumes, and node-specific placement constraints. Engineered a fully automated GitHub Actions CI/CD pipeline to build and deploy environment-agnostic Docker images directly to production. Hardened backend security by implementing Docker Secrets for database credentials, and deployed a centralized observability stack (Grafana, Loki, Promtail) to monitor all container logs in real-time. *(See Git history in the repository root and `.github/`.)*
+- **Yamoah Attafuah:** Managed DevOps operations and architecture. Setup the multi-node DigitalOcean infrastructure and orchestrated the Docker Swarm deployment. Developed an automated GitHub Actions CI/CD pipeline to build and deploy environment-agnostic Docker images directly to production. Implemented Docker Secrets for database credentials to harden backend security, and deployed a centralized observability stack (Grafana, Loki, Promtail) to monitor all container logs in real-time. *(See Git history in the repository root, `.github/`, and additional integration commits in `frontend/` and `backend/`.)*
 - **Samson Ajadalu:** Developed the robotics telemetry bridge. Wrote the Python nodes in ROS 2 to extract data from Gazebo/TurtleBot3 and stream it to the cloud backend. Handled full-stack integration by debugging WebSocket connections and fixing CORS policy errors between the frontend and API. Also authored the project's open-source documentation, including the main README and contribution guidelines. *(See Git history under `src/robot_bridge/`, with related integration commits in `frontend/`, `backend/`, and the repo root.)*
 
 ---
@@ -258,4 +273,4 @@ Please see **`ai-session.md`** in the repository root for the prompts and our fu
 
 ## 11. Lessons Learned
 
-This project provided invaluable experience in full-stack cloud orchestration. The biggest technical hurdle was ensuring the reliability of WebSockets across a distributed Docker Swarm. We learned that while WebSockets are excellent for real-time local data, maintaining persistent connections through cloud load balancers requires careful configuration of timeouts and reconnect logic. Additionally, transitioning from local `docker compose` to a cloud Swarm highlighted the importance of environment variables and strict network isolation. Ultimately, we achieved our goal of building a robust bridge between local robotic hardware and cloud infrastructure.
+This project provided invaluable experience in full-stack cloud orchestration. The biggest technical hurdle was ensuring the reliability of WebSockets across a distributed Docker Swarm. We learned that while WebSockets are excellent for real-time local data, maintaining persistent connections through cloud load balancers requires careful configuration of timeouts and reconnect logic. Additionally, transitioning from local `docker compose` to a cloud Swarm highlighted the importance of environment variables and strict network isolation. Further, from a DevOps perspective, we learned that managing a distributed Swarm makes traditional debugging tedious without a centralized logging solution, which made our integration of Promtail and Loki necesary for quick iterations and system stability. Ultimately, we achieved our goal of building a robust bridge between local robotic hardware and cloud infrastructure.
